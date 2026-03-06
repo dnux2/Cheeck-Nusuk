@@ -18,9 +18,9 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Language>(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("lang") as Language) || "en";
+      return (localStorage.getItem("lang") as Language) || "ar";
     }
-    return "en";
+    return "ar";
   });
 
   const isRTL = lang === "ar";

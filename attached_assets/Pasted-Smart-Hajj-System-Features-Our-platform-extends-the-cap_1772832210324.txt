@@ -1,0 +1,129 @@
+Smart Hajj System Features
+
+Our platform extends the capabilities of the Nusuk Platform by adding smart technologies that help authorities and campaign supervisors manage pilgrims safely and efficiently.
+
+The system provides real-time monitoring, smart alerts, and AI-powered tools to improve the safety and organization of Hajj and Umrah.
+
+Smart Pilgrim Map
+
+The system includes an interactive digital map that displays the real-time location of registered pilgrims.
+
+Supervisors can monitor the movement of pilgrims directly from the dashboard and identify crowd concentration areas.
+
+Key capabilities include:
+
+Live location tracking
+
+Pilgrim markers on the map
+
+Crowd density visualization
+
+Safe route monitoring
+
+Pilgrim Information System
+
+Each pilgrim has a complete digital profile stored in the system database.
+
+When a supervisor clicks on a pilgrim on the map, a detailed profile appears including:
+
+Full name
+
+Nationality
+
+Passport or ID number
+
+Campaign group
+
+Phone number
+
+Permit status
+
+Current location
+
+Emergency contact
+
+This allows supervisors to quickly identify and assist pilgrims when needed.
+
+Real-Time Pilgrim Tracking
+
+Pilgrims can share their GPS location through the mobile interface.
+
+The system continuously updates their position on the map and helps supervisors track the movement of groups.
+
+Benefits include:
+
+Monitoring pilgrim movement
+
+Preventing people from getting lost
+
+Improving coordination between campaign supervisors
+
+Route Monitoring System
+
+The system defines safe movement routes for pilgrims.
+
+If a pilgrim moves outside the assigned route, the system automatically generates an alert to notify supervisors.
+
+This feature helps maintain organized movement and reduces congestion risks.
+
+Emergency Assistance System
+
+Pilgrims can use a built-in emergency button if they need help.
+
+When activated, the system immediately:
+
+Sends the pilgrim's location
+
+Notifies supervisors
+
+Displays the emergency alert on the control dashboard
+
+This enables faster response and improves safety.
+
+Unauthorized Pilgrim Detection
+
+The system helps identify unauthorized pilgrims by verifying permit status through integration with Nusuk data.
+
+AI-assisted monitoring tools can help detect individuals who do not have valid permits and notify authorities.
+
+AI Language Translator
+
+Since pilgrims come from many countries, the platform includes an AI-powered translation tool.
+
+The translator supports:
+
+Voice translation
+
+Text translation
+
+Multiple international languages
+
+This helps supervisors communicate effectively with pilgrims.
+
+Smart Supervisor Dashboard
+
+The system includes a powerful dashboard for campaign supervisors.
+
+The dashboard displays:
+
+Total number of pilgrims
+
+Live interactive map
+
+Crowd monitoring statistics
+
+Emergency alerts
+
+Unauthorized pilgrim notifications
+
+This dashboard acts as the central control center for managing pilgrims.
+
+Multilingual Interface
+
+The platform supports both Arabic and English languages.
+
+Users can easily switch between languages, and the interface automatically adapts to Arabic right-to-left layout when Arabic is selected.
+
+Goal of the Platform
+
+The goal of this system is to enhance the Nusuk ecosystem by providing smart tools that help manage crowds, improve pilgrim safety, and assist authorities in organizing Hajj and Umrah operations efficiently.

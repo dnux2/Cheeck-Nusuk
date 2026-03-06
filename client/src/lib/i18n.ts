@@ -78,6 +78,25 @@ export const translations = {
     selectLanguage: "Select Target Language",
     translating: "Translating...",
     translationResult: "Translation Result",
+
+    // Dashboard
+    overviewTitle: "Overview",
+    systemStatus: "System status across all sectors.",
+    allSystemsNominal: "All Systems Nominal",
+    totalPilgrimsTracked: "Total Pilgrims Tracked",
+    activeEmergenciesCard: "Active Emergencies",
+    securityAlerts: "Security Alerts",
+    avgCrowdDensity: "Avg Crowd Density",
+    liveSectorMap: "Live Sector Map",
+    crowdDensityTrend: "Crowd Density Trend",
+    recentAlerts: "Recent Alerts",
+    justNow: "Just now",
+    crowdManagementDesc: "Live density heatmap and predictive routing.",
+    sectorStatus: "Sector Status",
+    executeRedirection: "Execute Redirection",
+    congestionWarning: "Congestion Warning",
+    congestionDesc: "Sector 4 (Jamarat Bridge) is approaching 85% capacity. Predictive AI suggests redirecting Group A to Sector 5.",
+    layers: "Layers",
   },
   ar: {
     // Nav
@@ -156,6 +175,25 @@ export const translations = {
     selectLanguage: "اختر اللغة المستهدفة",
     translating: "جارٍ الترجمة...",
     translationResult: "نتيجة الترجمة",
+
+    // Dashboard
+    overviewTitle: "نظرة عامة",
+    systemStatus: "حالة النظام عبر جميع القطاعات.",
+    allSystemsNominal: "جميع الأنظمة تعمل بشكل طبيعي",
+    totalPilgrimsTracked: "إجمالي الحجاج المتتبعين",
+    activeEmergenciesCard: "حالات الطوارئ النشطة",
+    securityAlerts: "تنبيهات الأمن",
+    avgCrowdDensity: "متوسط كثافة الحشود",
+    liveSectorMap: "خريطة المشاعر المباشرة",
+    crowdDensityTrend: "منحنى كثافة الحشود",
+    recentAlerts: "آخر التنبيهات",
+    justNow: "الآن",
+    crowdManagementDesc: "خريطة حرارية مباشرة وتحسين المسارات.",
+    sectorStatus: "حالة المناطق",
+    executeRedirection: "تنفيذ إعادة التوجيه",
+    congestionWarning: "تحذير من الازدحام",
+    congestionDesc: "القطاع 4 (جسر الجمرات) يقترب من 85% من طاقته. يقترح الذكاء الاصطناعي إعادة توجيه المجموعة أ إلى القطاع 5.",
+    layers: "الطبقات",
   },
 };
 
