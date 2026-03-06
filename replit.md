@@ -1,8 +1,8 @@
-# Smart Nusuk – Hajj & Pilgrim Management Platform
+# CheckNusuk – Hajj & Pilgrim Management Platform
 
 ## Overview
 
-Smart Nusuk is a modern web application inspired by the Saudi Nusuk (nusuk.sa) platform. It provides two core capabilities:
+CheckNusuk is a modern web application inspired by the Saudi Nusuk (nusuk.sa) platform. It provides two core capabilities:
 
 1. **Pilgrim Services** – Hajj/Umrah permit applications, transport booking, and pilgrim registry management.
 2. **Smart Crowd Management** – AI-powered real-time crowd monitoring, security alerts, emergency response, and a field translator for multilingual communication.

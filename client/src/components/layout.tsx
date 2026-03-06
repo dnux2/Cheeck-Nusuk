@@ -58,7 +58,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="text-white font-bold text-xl">N</span>
             </div>
             <div className={isRTL ? "text-right" : ""}>
-              <h1 className="font-bold text-lg leading-none tracking-tight">Smart Nusuk</h1>
+              <h1 className="font-bold text-lg leading-none tracking-tight">CheckNusuk</h1>
               <p className="text-xs text-muted-foreground font-medium">{t("controlCenter")}</p>
             </div>
           </Link>

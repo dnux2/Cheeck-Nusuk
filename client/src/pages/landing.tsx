@@ -12,7 +12,7 @@ export function LandingPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg">
               <span className="text-white font-display font-bold text-xl">N</span>
             </div>
-            <span className="font-display font-bold text-xl tracking-tight text-foreground">Smart Nusuk</span>
+            <span className="font-display font-bold text-xl tracking-tight text-foreground">CheckNusuk</span>
           </div>
           <div className="hidden md:flex items-center gap-8 font-medium text-muted-foreground">
             <a href="#features" className="hover:text-primary transition-colors">Features</a>
