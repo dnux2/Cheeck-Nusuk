@@ -1,20 +1,25 @@
 import { MockMap } from "@/components/mock-map";
 import { AlertCircle, Maximize2, Layers } from "lucide-react";
+import { usePilgrims } from "@/hooks/use-pilgrims";
+import { useLanguage } from "@/contexts/language-context";
 
 export function CrowdManagementPage() {
+  const { data: pilgrims } = usePilgrims();
+  const { t, isRTL } = useLanguage();
+
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto h-[calc(100vh-5rem)] flex flex-col">
-      <div className="flex justify-between items-center mb-6 flex-shrink-0">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Crowd Management</h1>
+      <div className={`flex justify-between items-center mb-6 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className={isRTL ? "text-right" : ""}>
+          <h1 className="text-3xl font-bold text-foreground">{t("crowdMonitoring")}</h1>
           <p className="text-muted-foreground mt-1">Live density heatmap and predictive routing.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-secondary text-secondary-foreground font-semibold rounded-xl flex items-center gap-2 hover:bg-secondary/80 transition-colors">
+        <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <button className={`px-4 py-2 bg-secondary text-secondary-foreground font-semibold rounded-xl flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
             <Layers className="w-4 h-4" />
             Layers
           </button>
-          <button className="p-2 bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/80 transition-colors">
+          <button className="p-2 bg-secondary text-secondary-foreground rounded-xl">
             <Maximize2 className="w-5 h-5" />
           </button>
         </div>
@@ -22,7 +27,7 @@ export function CrowdManagementPage() {
 
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
         <div className="flex-1 rounded-2xl overflow-hidden border border-border/50 shadow-lg relative min-h-[400px]">
-          <MockMap activePoints={40} />
+          <MockMap pilgrims={pilgrims} activePoints={40} />
           
           <div className="absolute top-4 right-4 max-w-sm bg-card/90 backdrop-blur-xl border border-border p-4 rounded-xl shadow-2xl">
             <h3 className="font-bold flex items-center gap-2 mb-2">
