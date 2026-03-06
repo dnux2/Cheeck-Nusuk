@@ -15,12 +15,14 @@ import { SecurityPage } from "@/pages/security";
 import { EmergenciesPage } from "@/pages/emergencies";
 import { ServicesPage } from "@/pages/services";
 import { TranslatorPage } from "@/pages/translator";
+import { PilgrimPortalPage } from "@/pages/pilgrim-portal";
 
 function Router() {
   return (
     <Layout>
       <Switch>
         <Route path="/" component={LandingPage} />
+        <Route path="/pilgrim" component={PilgrimPortalPage} />
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/pilgrims" component={PilgrimsPage} />
         <Route path="/crowd-management" component={CrowdManagementPage} />
