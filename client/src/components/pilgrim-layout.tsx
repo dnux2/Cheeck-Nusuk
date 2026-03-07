@@ -157,34 +157,15 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
         {/* Top bar — mobile & desktop (desktop only when no sidebar) */}
         <header className={`h-14 flex-shrink-0 flex items-center justify-between px-4 bg-card/90 backdrop-blur-md border-b border-border sticky top-0 z-10 shadow-sm ${isRTL ? "flex-row-reverse" : ""}`}>
-          {/* Start: hamburger + lang toggle */}
-          <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border transition-colors"
-              data-testid="btn-open-pilgrim-menu"
-            >
-              <Menu className="w-5 h-5 text-foreground" />
-            </button>
-
-            {/* Lang toggle */}
-            <div className="flex items-center bg-secondary rounded-lg overflow-hidden border border-border">
-              <button
-                onClick={() => setLang("ar")}
-                className={`px-2 py-1 text-xs font-bold transition-all ${lang === "ar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                data-testid="pilgrim-lang-ar"
-              >
-                ع
-              </button>
-              <button
-                onClick={() => setLang("en")}
-                className={`px-2 py-1 text-xs font-bold transition-all ${lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                data-testid="pilgrim-lang-en"
-              >
-                EN
-              </button>
-            </div>
-          </div>
+          {/* Start: hamburger */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden p-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border transition-colors"
+            data-testid="btn-open-pilgrim-menu"
+          >
+            <Menu className="w-5 h-5 text-foreground" />
+          </button>
+          <div className="hidden lg:block w-10" />
 
           {/* Center: logo only */}
           <Link href="/" className="absolute left-1/2 -translate-x-1/2" data-testid="link-logo-pilgrim">
