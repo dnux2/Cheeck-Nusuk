@@ -59,7 +59,7 @@ export function LoginPage() {
     }, 400);
   }
 
-  function handlePilgrimLogin(e: React.FormEvent) {
+  async function handlePilgrimLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -73,12 +73,23 @@ export function LoginPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch(`/api/pilgrims/by-passport/${passport.trim().toUpperCase()}`);
+      if (!res.ok) {
+        setError(ar ? "رقم الجواز غير موجود في النظام" : "Passport number not found in system");
+        setLoading(false);
+        return;
+      }
+      const pilgrim = await res.json();
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("role", "pilgrim");
       localStorage.setItem("passport", passport.trim().toUpperCase());
+      localStorage.setItem("pilgrimId", String(pilgrim.id));
       navigate("/pilgrim");
-    }, 300);
+    } catch {
+      setError(ar ? "خطأ في الاتصال بالخادم" : "Connection error");
+      setLoading(false);
+    }
   }
 
   return (

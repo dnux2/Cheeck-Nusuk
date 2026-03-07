@@ -34,7 +34,7 @@ export function PilgrimPortalPage() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Chat — pilgrim ID 1 is the mock active pilgrim
-  const PILGRIM_ID = 1;
+  const PILGRIM_ID = Number(localStorage.getItem("pilgrimId") || "1");
   const { data: chatMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/messages"],
     refetchInterval: 3000,

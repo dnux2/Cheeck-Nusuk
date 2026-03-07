@@ -111,6 +111,15 @@ export async function registerRoutes(
     res.json(pilgrims);
   });
 
+  app.get("/api/pilgrims/by-passport/:passport", async (req, res) => {
+    const pilgrims = await storage.getPilgrims({ limit: 1000, offset: 0 });
+    const pilgrim = pilgrims.find(
+      p => p.passportNumber.toUpperCase() === req.params.passport.toUpperCase()
+    );
+    if (!pilgrim) return res.status(404).json({ message: "Pilgrim not found" });
+    res.json(pilgrim);
+  });
+
   app.get(api.pilgrims.get.path, async (req, res) => {
     const pilgrim = await storage.getPilgrim(Number(req.params.id));
     if (!pilgrim) {

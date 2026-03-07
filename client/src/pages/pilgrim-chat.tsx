@@ -15,7 +15,7 @@ export function PilgrimChatPage() {
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  const pilgrimId = 1;
+  const pilgrimId = Number(localStorage.getItem("pilgrimId") || "1");
 
   const { data: chatMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/messages"],

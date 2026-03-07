@@ -207,7 +207,7 @@ export function PilgrimHomePage() {
     }
   }, [requestLocation]);
 
-  const pilgrimId = 1;
+  const pilgrimId = Number(localStorage.getItem("pilgrimId") || "1");
   const LOC_QUEUE_KEY = "loc_queue_pilgrim_1";
 
   const { data: pilgrim } = useQuery<Pilgrim>({

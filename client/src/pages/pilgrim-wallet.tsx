@@ -25,7 +25,7 @@ export function PilgrimWalletPage() {
   const [editEmergencyOpen, setEditEmergencyOpen] = useState(false);
   const [emergencyForm, setEmergencyForm] = useState({ emergencyContact: "" });
 
-  const pilgrimId = 1;
+  const pilgrimId = Number(localStorage.getItem("pilgrimId") || "1");
 
   const { data: pilgrim, isLoading } = useQuery<Pilgrim>({
     queryKey: ["/api/pilgrims", pilgrimId],

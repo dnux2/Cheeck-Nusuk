@@ -80,7 +80,7 @@ export function PilgrimHajjNotesPage() {
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
-  const pilgrimId = 1;
+  const pilgrimId = Number(localStorage.getItem("pilgrimId") || "1");
 
   const { data: notes = [] } = useQuery<HajjNote[]>({
     queryKey: ["/api/pilgrims", pilgrimId, "hajj-notes"],
