@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { RealMap, type NavRoute, type FacilityType, type Facility, FACILITIES, TYPE_CFG, SUPERVISOR_POS, haversineM, getFacilityCrowdScore, fetchOSRM } from "@/components/real-map";
 import { AlertCircle, RefreshCw, Radio, Navigation, MapPin, Clock, ArrowLeft, ArrowRight, ArrowUp, CornerDownLeft, Footprints, X, ChevronDown, ChevronUp, Sparkles, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -111,6 +111,19 @@ export function CrowdManagementPage() {
   }, []);
 
   const warningZones = sectors.filter(s => s.load >= 80);
+
+  // ── Auto-scroll to panels when they become active ────────────────────────
+  const panelsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (navRoute && panelsRef.current) {
+      panelsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [navRoute]);
+  useEffect(() => {
+    if (suggestType && panelsRef.current) {
+      panelsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [suggestType]);
 
   // ── Shared panel JSX (used above the map) ────────────────────────────────
   const navPanel = navRoute ? (
@@ -270,7 +283,7 @@ export function CrowdManagementPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col gap-3 mb-3">
+      <div ref={panelsRef} className="flex flex-col gap-3 mb-3 scroll-mt-4">
         <AnimatePresence>{navRoute && navPanel}</AnimatePresence>
         <AnimatePresence>{suggestType && suggestPanel}</AnimatePresence>
       </div>

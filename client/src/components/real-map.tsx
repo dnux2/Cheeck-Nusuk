@@ -240,12 +240,19 @@ function FlyToHighlighted({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-function FitRouteBounds({ coords }: { coords: [number, number][] }) {
+function FlyToRouteStart({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
-    if (coords.length < 2) return;
-    map.fitBounds(L.latLngBounds(coords), { padding: [70, 70] });
-  }, [coords, map]);
+    map.flyTo([lat, lng], 16, { duration: 1.3, easeLinearity: 0.25 });
+  }, [lat, lng, map]);
+  return null;
+}
+
+function ClosePopupsOnNav({ active }: { active: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (active) map.closePopup();
+  }, [active, map]);
   return null;
 }
 
@@ -431,7 +438,8 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
         {highlightedPilgrim?.locationLat && highlightedPilgrim?.locationLng && !navRoute && (
           <FlyToHighlighted lat={highlightedPilgrim.locationLat} lng={highlightedPilgrim.locationLng} />
         )}
-        {navRoute && <FitRouteBounds coords={navRoute.coords} />}
+        <ClosePopupsOnNav active={!!navRoute} />
+        {navRoute && <FlyToRouteStart lat={SUPERVISOR_POS.lat} lng={SUPERVISOR_POS.lng} />}
 
         {/* Zone circles */}
         {enrichedZones.map(zone => {
