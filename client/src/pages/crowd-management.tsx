@@ -165,7 +165,7 @@ export function CrowdManagementPage() {
                 <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-1000 ${
-                      isWarning ? "bg-destructive" : isBusy ? "bg-accent" : s.load < 5 ? "bg-muted-foreground/40" : "bg-primary"
+                      isWarning ? "bg-destructive" : isBusy ? "bg-accent" : "bg-muted-foreground/40"
                     }`}
                     style={{ width: `${s.load}%` }}
                   />
