@@ -61,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
@@ -72,7 +72,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         variants={sidebarVariants}
         animate={sidebarOpen ? "open" : "closed"}
         className={`
-          fixed z-50 w-72 h-full flex flex-col bg-card shadow-2xl
+          fixed z-[1000] w-72 h-full flex flex-col bg-card shadow-2xl
           ${isRTL ? "border-l border-border right-0" : "border-r border-border left-0"}
         `}
         style={{ willChange: "transform" }}

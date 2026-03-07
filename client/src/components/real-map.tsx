@@ -242,7 +242,7 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
   }, [onZoneClick]);
 
   return (
-    <div className="relative w-full h-full" style={{ minHeight: 300 }}>
+    <div className="relative w-full h-full" style={{ minHeight: 300, isolation: "isolate" }}>
       <MapContainer
         center={[21.4225, 39.8900]}
         zoom={12}
@@ -313,9 +313,6 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
         })}
       </MapContainer>
 
-      {/* ── Overlay layer — pointer-events-none so map drag is never blocked ── */}
-      <div className="absolute inset-0" style={{ zIndex: 900, pointerEvents: "none" }}>
-
       {/* Zone info popup */}
       <AnimatePresence>
         {selectedZone && (
@@ -325,7 +322,7 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             className={`absolute bottom-14 ${isRTL ? "right-4" : "left-4"} w-72 bg-card/97 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-5`}
-            style={{ pointerEvents: "auto" }}
+            style={{ zIndex: 850 }}
             dir={isRTL ? "rtl" : "ltr"}
           >
             <div className={`flex justify-between items-start mb-3 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -401,6 +398,7 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className={`absolute top-4 ${isRTL ? "left-4" : "right-4"} flex items-center gap-2 bg-primary text-primary-foreground text-xs font-bold px-3 py-2 rounded-xl shadow-lg`}
+            style={{ zIndex: 850 }}
             dir={isRTL ? "rtl" : "ltr"}
           >
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -410,7 +408,7 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
       </AnimatePresence>
 
       {/* Legend */}
-      <div className={`absolute top-4 ${isRTL ? "right-4" : "left-4"} bg-card/92 backdrop-blur-xl border border-border rounded-xl p-3 shadow-xl`} style={{ pointerEvents: "auto" }} dir={isRTL ? "rtl" : "ltr"}>
+      <div className={`absolute top-4 ${isRTL ? "right-4" : "left-4"} bg-card/92 backdrop-blur-xl border border-border rounded-xl p-3 shadow-xl`} style={{ zIndex: 850 }} dir={isRTL ? "rtl" : "ltr"}>
         <div className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">{ar ? "مستوى الازدحام" : "Density"}</div>
         {[
           { color: "#EF4444", label: ar ? "تحذير" : "Warning" },
@@ -440,11 +438,9 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
       </div>
 
       {/* Attribution */}
-      <div className="absolute bottom-2 right-12 text-[10px] text-black/40 font-mono" dir="ltr">
+      <div className="absolute bottom-2 right-12 text-[10px] text-black/40 font-mono pointer-events-none" style={{ zIndex: 850 }} dir="ltr">
         © CARTO / OpenStreetMap
       </div>
-
-      </div>{/* end pointer-events-none overlay layer */}
     </div>
   );
 }
