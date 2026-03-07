@@ -25,30 +25,35 @@ interface Facility {
 }
 
 const FACILITIES: Facility[] = [
-  { id: "h1", type: "hospital", nameAr: "مستشفى الملك عبدالله",    nameEn: "King Abdullah Medical",    lat: 21.4180, lng: 39.8220, detailAr: "طوارئ ٢٤ ساعة",          detailEn: "24h Emergency" },
-  { id: "h2", type: "hospital", nameAr: "مستشفى أجياد الطوارئ",    nameEn: "Ajyad Emergency Hospital", lat: 21.4195, lng: 39.8295, detailAr: "الحرم المكي",             detailEn: "Near Grand Mosque" },
-  { id: "h3", type: "hospital", nameAr: "مستشفى النور التخصصي",    nameEn: "Al-Nour Specialist",       lat: 21.3990, lng: 39.8580, detailAr: "أمراض الحج",             detailEn: "Hajj Diseases" },
-  { id: "h4", type: "hospital", nameAr: "مركز صحة منى",            nameEn: "Mina Health Center",       lat: 21.4120, lng: 39.8960, detailAr: "خدمات طبية شاملة",       detailEn: "Full medical services" },
-  { id: "h5", type: "hospital", nameAr: "إسعاف مزدلفة",            nameEn: "Muzdalifah First Aid",     lat: 21.3820, lng: 39.9320, detailAr: "إسعاف ميداني",           detailEn: "Field first aid" },
-  { id: "w1", type: "water",    nameAr: "زمزم — المسجد الحرام",    nameEn: "Zamzam — Grand Mosque",    lat: 21.4225, lng: 39.8262, detailAr: "أصل بئر زمزم المباركة", detailEn: "Source of Zamzam well" },
-  { id: "w2", type: "water",    nameAr: "محطة مياه منى ١",         nameEn: "Mina Water Station 1",     lat: 21.4140, lng: 39.8890, detailAr: "مياه معبأة مجاناً",       detailEn: "Free bottled water" },
-  { id: "w3", type: "water",    nameAr: "محطة مياه منى ٢",         nameEn: "Mina Water Station 2",     lat: 21.4100, lng: 39.8950, detailAr: "مياه معبأة مجاناً",       detailEn: "Free bottled water" },
-  { id: "w4", type: "water",    nameAr: "محطة مياه عرفات",         nameEn: "Arafat Water Station",     lat: 21.3550, lng: 39.9810, detailAr: "مياه زمزم وعادية",       detailEn: "Zamzam & regular water" },
-  { id: "w5", type: "water",    nameAr: "محطة مياه مزدلفة",        nameEn: "Muzdalifah Water",         lat: 21.3820, lng: 39.9340, detailAr: "مياه متاحة الليل",       detailEn: "Available all night" },
-  { id: "w6", type: "water",    nameAr: "نقطة مياه الجمرات",       nameEn: "Jamarat Water Point",      lat: 21.4050, lng: 39.8730, detailAr: "قريبة من رمي الجمار",    detailEn: "Near Jamarat area" },
-  { id: "m1", type: "mosque",   nameAr: "المسجد الحرام",           nameEn: "Grand Mosque",             lat: 21.4225, lng: 39.8262, detailAr: "قبلة المسلمين",          detailEn: "Muslim Qibla" },
-  { id: "m2", type: "mosque",   nameAr: "مسجد نمرة — عرفات",      nameEn: "Nimrah Mosque — Arafat",   lat: 21.3549, lng: 39.9850, detailAr: "خطبة عرفة والظهر",       detailEn: "Arafat sermon & Dhuhr" },
-  { id: "m3", type: "mosque",   nameAr: "مسجد الخيف — منى",       nameEn: "Al-Khayf Mosque — Mina",   lat: 21.4115, lng: 39.8920, detailAr: "صلاة أيام التشريق",      detailEn: "Tashreeq days prayers" },
-  { id: "m4", type: "mosque",   nameAr: "مسجد المشعر — مزدلفة",   nameEn: "Mash'ar Mosque",           lat: 21.3820, lng: 39.9330, detailAr: "الوقوف بالمشعر الحرام", detailEn: "Standing at Mash'ar" },
-  { id: "b1", type: "bathroom", nameAr: "دورات مياه — شمال الحرم",nameEn: "Restrooms — North Haram",  lat: 21.4240, lng: 39.8255, detailAr: "نظيفة ومتاحة ٢٤ ساعة", detailEn: "Clean, 24h available" },
-  { id: "b2", type: "bathroom", nameAr: "مرافق منى — المخيم أ",   nameEn: "Mina Facilities — Camp A", lat: 21.4130, lng: 39.8900, detailAr: "مع حمامات سباحة",        detailEn: "With shower facilities" },
-  { id: "b3", type: "bathroom", nameAr: "مرافق منى — المخيم ب",   nameEn: "Mina Facilities — Camp B", lat: 21.4090, lng: 39.8970, detailAr: "مع حمامات سباحة",        detailEn: "With shower facilities" },
-  { id: "b4", type: "bathroom", nameAr: "مرافق منطقة الجمرات",    nameEn: "Jamarat Restrooms",        lat: 21.4055, lng: 39.8720, detailAr: "قريبة من الجمرات",       detailEn: "Near Jamarat" },
-  { id: "b5", type: "bathroom", nameAr: "مرافق سهل عرفات",        nameEn: "Arafat Plain Restrooms",   lat: 21.3580, lng: 39.9840, detailAr: "موزعة على السهل",        detailEn: "Spread across plain" },
-  { id: "t1", type: "transport",nameAr: "موقف حافلات الحرم",      nameEn: "Grand Mosque Bus Stop",    lat: 21.4200, lng: 39.8240, detailAr: "خطوط منى وعرفات",       detailEn: "Lines to Mina & Arafat" },
-  { id: "t2", type: "transport",nameAr: "محطة قطار الحرمين — منى",nameEn: "Haramain Train — Mina",    lat: 21.4080, lng: 39.8890, detailAr: "قطار سريع للحجاج",      detailEn: "Fast Hajj train" },
-  { id: "t3", type: "transport",nameAr: "محطة حافلات عرفات",      nameEn: "Arafat Bus Terminal",      lat: 21.3540, lng: 39.9830, detailAr: "العودة لمزدلفة ومنى",   detailEn: "Return to Muzdalifah & Mina" },
-  { id: "t4", type: "transport",nameAr: "موقف مزدلفة الليلي",     nameEn: "Muzdalifah Night Stop",    lat: 21.3800, lng: 39.9310, detailAr: "نقل ليلي لمنى",         detailEn: "Night transport to Mina" },
+  // Hospitals — verified real coordinates
+  { id: "h1", type: "hospital", nameAr: "مدينة الملك عبدالله الطبية",  nameEn: "King Abdullah Medical City",   lat: 21.38135, lng: 39.88109, detailAr: "١٥٥٠ سرير · تخصصات متعددة",   detailEn: "1550 beds · Multi-specialty" },
+  { id: "h2", type: "hospital", nameAr: "مستشفى أجياد الطوارئ",       nameEn: "Ajyad Emergency Hospital",     lat: 21.41940, lng: 39.82726, detailAr: "طوارئ ٢٤ ساعة · قرب الحرم",   detailEn: "24h Emergency · Near Haram" },
+  { id: "h3", type: "hospital", nameAr: "مستشفى النور التخصصي",       nameEn: "Al-Nour Specialist Hospital",  lat: 21.38487, lng: 39.86052, detailAr: "٥٠٠ سرير · أمراض الحج",        detailEn: "500 beds · Hajj diseases" },
+  { id: "h4", type: "hospital", nameAr: "مستشفى منى للطوارئ",         nameEn: "Mina Emergency Hospital",      lat: 21.41950, lng: 39.87200, detailAr: "قرب جسر الجمرات · ٢٠٠ سرير", detailEn: "Near Jamarat · 200 beds" },
+  { id: "h5", type: "hospital", nameAr: "مستشفى مزدلفة الميداني",     nameEn: "Muzdalifah Field Hospital",    lat: 21.38880, lng: 39.93600, detailAr: "خدمات إسعاف ليلية",           detailEn: "Night emergency services" },
+  // Water points
+  { id: "w1", type: "water", nameAr: "زمزم — المسجد الحرام",          nameEn: "Zamzam — Grand Mosque",        lat: 21.42250, lng: 39.82620, detailAr: "أصل بئر زمزم المباركة",     detailEn: "Source of blessed Zamzam" },
+  { id: "w2", type: "water", nameAr: "محطة مياه منى — الجمرات",       nameEn: "Mina Water — Jamarat Area",    lat: 21.41800, lng: 39.87500, detailAr: "مياه زمزم مجاناً",            detailEn: "Free Zamzam water" },
+  { id: "w3", type: "water", nameAr: "محطة مياه منى — المخيمات",      nameEn: "Mina Water — Camps Area",      lat: 21.41200, lng: 39.89200, detailAr: "مياه معبأة مجاناً",           detailEn: "Free bottled water" },
+  { id: "w4", type: "water", nameAr: "محطة مياه عرفات — مسجد نمرة",   nameEn: "Arafat Water — Nimrah Area",   lat: 21.35500, lng: 39.97200, detailAr: "مياه زمزم وعادية",           detailEn: "Zamzam & regular water" },
+  { id: "w5", type: "water", nameAr: "محطة مياه مزدلفة",              nameEn: "Muzdalifah Water Station",     lat: 21.38880, lng: 39.93800, detailAr: "مياه متاحة طوال الليل",      detailEn: "Available all night" },
+  { id: "w6", type: "water", nameAr: "نقطة مياه جسر الجمرات",         nameEn: "Jamarat Bridge Water Point",   lat: 21.41950, lng: 39.87030, detailAr: "قريبة من رمي الجمار",       detailEn: "Near stoning ritual area" },
+  // Mosques — verified real coordinates
+  { id: "m1", type: "mosque", nameAr: "المسجد الحرام",                nameEn: "Grand Mosque (Masjid al-Haram)", lat: 21.42250, lng: 39.82620, detailAr: "قبلة المسلمين",           detailEn: "Muslim Qibla direction" },
+  { id: "m2", type: "mosque", nameAr: "مسجد نمرة — عرفات",           nameEn: "Nimrah Mosque — Arafat",       lat: 21.35296, lng: 39.96675, detailAr: "خطبة عرفة والظهر والعصر",   detailEn: "Arafat sermon & prayers" },
+  { id: "m3", type: "mosque", nameAr: "مسجد الخيف — منى",            nameEn: "Al-Khayf Mosque — Mina",       lat: 21.41572, lng: 39.87863, detailAr: "صلاة أيام التشريق",         detailEn: "Tashreeq days prayers" },
+  { id: "m4", type: "mosque", nameAr: "مسجد المشعر الحرام — مزدلفة", nameEn: "Mash'ar al-Haram Mosque",      lat: 21.38880, lng: 39.93600, detailAr: "الوقوف بالمشعر الحرام",    detailEn: "Night standing at Mash'ar" },
+  // Restrooms
+  { id: "b1", type: "bathroom", nameAr: "دورات مياه — شمال الحرم",   nameEn: "Restrooms — North Haram",      lat: 21.42500, lng: 39.82550, detailAr: "نظيفة ومتاحة ٢٤ ساعة",   detailEn: "Clean, 24h available" },
+  { id: "b2", type: "bathroom", nameAr: "مرافق منى — منطقة الجمرات", nameEn: "Mina Facilities — Jamarat",    lat: 21.41800, lng: 39.87000, detailAr: "قرب جسر الجمرات",          detailEn: "Near Jamarat Bridge" },
+  { id: "b3", type: "bathroom", nameAr: "مرافق منى — المخيمات",      nameEn: "Mina Facilities — Camps",      lat: 21.41200, lng: 39.89500, detailAr: "مع حمامات للاغتسال",       detailEn: "With shower facilities" },
+  { id: "b4", type: "bathroom", nameAr: "مرافق سهل عرفات",           nameEn: "Arafat Plain Restrooms",       lat: 21.35500, lng: 39.98000, detailAr: "موزعة على سهل عرفات",     detailEn: "Spread across Arafat plain" },
+  { id: "b5", type: "bathroom", nameAr: "مرافق مزدلفة",              nameEn: "Muzdalifah Restrooms",         lat: 21.38800, lng: 39.94000, detailAr: "متاحة طوال الليل",         detailEn: "Available all night" },
+  // Transport — corrected (Hajj Metro, not Haramain)
+  { id: "t1", type: "transport", nameAr: "موقف حافلات المسجد الحرام", nameEn: "Grand Mosque Bus Terminal",    lat: 21.42100, lng: 39.82400, detailAr: "حافلات لمنى وعرفات",       detailEn: "Buses to Mina & Arafat" },
+  { id: "t2", type: "transport", nameAr: "محطة مترو الحجاج — جمرات", nameEn: "Hajj Metro — Jamarat Station", lat: 21.41950, lng: 39.87030, detailAr: "مترو الحجاج للمشاعر المقدسة",detailEn: "Pilgrim metro to holy sites" },
+  { id: "t3", type: "transport", nameAr: "محطة مترو الحجاج — عرفات", nameEn: "Hajj Metro — Arafat Station",  lat: 21.35500, lng: 39.98400, detailAr: "مترو للعودة لمزدلفة ومنى",  detailEn: "Metro back to Muzdalifah" },
+  { id: "t4", type: "transport", nameAr: "موقف مزدلفة — نقل ليلي",   nameEn: "Muzdalifah Night Transport",   lat: 21.38500, lng: 39.93200, detailAr: "نقل ليلي إلى منى",           detailEn: "Night buses to Mina" },
 ];
 
 const TYPE_CONFIG: Record<FacilityType, { colorHex: string; lightHex: string; emoji: string; labelAr: string; labelEn: string }> = {
