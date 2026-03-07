@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Map, Wallet, MessageSquare, Languages, AlertTriangle, X, Menu, LogOut, BookOpen, Bell } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { useAuth } from "@/contexts/auth-context";
 import logoImg from "@assets/WhatsApp_Image_2026-03-07_at_12.53.20_AM_1772834050515.jpeg";
 
 interface NavItem {
@@ -23,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function PilgrimLayout({ children }: { children: React.ReactNode }) {
   const { lang, setLang, isRTL } = useLanguage();
+  const { user, logout } = useAuth();
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const ar = lang === "ar";
@@ -47,10 +49,12 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
       {/* Pilgrim info card */}
       <div className="mx-4 mt-4 p-3 rounded-2xl bg-gradient-to-b from-[#d4ede6] to-white dark:from-[#0e2e28] dark:to-card border border-[#a8d4cb] dark:border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0 shadow-sm" style={{ background: "#d4a853", color: "#fff" }}>أ</div>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0 shadow-sm" style={{ background: "#d4a853", color: "#fff" }}>
+            {user?.name?.charAt(0)?.toUpperCase() ?? "H"}
+          </div>
           <div>
-            <div className="font-bold text-sm text-foreground">{ar ? "أحمد علي" : "Ahmed Ali"}</div>
-            <div className="text-muted-foreground text-[10px] mt-0.5">{ar ? "حملة التوحيد · مكة المكرمة" : "Al-Tawheed · Makkah"}</div>
+            <div className="font-bold text-sm text-foreground">{user?.name ?? (ar ? "الحاج" : "Pilgrim")}</div>
+            <div className="text-muted-foreground text-[10px] mt-0.5">{ar ? "حاج · مكة المكرمة" : "Pilgrim · Makkah"}</div>
           </div>
         </div>
       </div>
@@ -96,16 +100,14 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
         </Link>
 
         {/* Logout */}
-        <Link href="/" className="mt-1 block">
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="w-full py-2 rounded-2xl text-destructive hover:bg-destructive/10 font-semibold text-sm flex flex-row items-center justify-center gap-2 transition-colors"
-            data-testid="btn-logout-pilgrim"
-          >
-            <LogOut className="w-4 h-4 flex-shrink-0" />
-            {ar ? "تسجيل الخروج" : "Logout"}
-          </button>
-        </Link>
+        <button
+          onClick={() => { setMobileOpen(false); logout(); }}
+          className="mt-1 w-full py-2 rounded-2xl text-destructive hover:bg-destructive/10 font-semibold text-sm flex flex-row items-center justify-center gap-2 transition-colors"
+          data-testid="btn-logout-pilgrim"
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          {ar ? "تسجيل الخروج" : "Logout"}
+        </button>
       </div>
     </div>
   );

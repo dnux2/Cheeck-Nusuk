@@ -5,6 +5,7 @@ import {
   alerts,
   chatMessages,
   hajjNotes,
+  users,
   type Pilgrim,
   type InsertPilgrim,
   type Emergency,
@@ -14,6 +15,8 @@ import {
   type ChatMessage,
   type InsertChatMessage,
   type HajjNote,
+  type User,
+  type InsertUser,
 } from "@shared/schema";
 import { eq, or, isNull, and } from "drizzle-orm";
 
@@ -41,6 +44,10 @@ export interface IStorage {
   // Hajj Notes
   getHajjNotes(pilgrimId: number): Promise<HajjNote[]>;
   upsertHajjNote(pilgrimId: number, stageKey: string, note: string): Promise<HajjNote>;
+
+  // Users (auth)
+  findUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -128,12 +135,10 @@ export class DatabaseStorage implements IStorage {
   // Chat
   async getChatMessages(pilgrimId?: number): Promise<ChatMessage[]> {
     if (pilgrimId !== undefined) {
-      // For a specific pilgrim: return messages addressed to them + broadcast messages (null pilgrimId)
       return await db.select().from(chatMessages).where(
         or(eq(chatMessages.pilgrimId, pilgrimId), isNull(chatMessages.pilgrimId))
       );
     }
-    // Supervisor: return all messages
     return await db.select().from(chatMessages);
   }
 
@@ -163,6 +168,17 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Users (auth)
+  async findUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
   }
 }
 

@@ -88,7 +88,28 @@ This eliminates API drift between frontend hooks and backend handlers.
 
 ### Authentication
 
-No authentication system is currently implemented. The platform is designed for internal admin use. Sessions could be added using `express-session` + `connect-pg-simple` (both already in dependencies).
+Session-based login system using `express-session`. Two login portals on `/login`:
+
+- **Supervisor tab**: Username + password → redirects to `/dashboard`
+- **Pilgrim tab**: Passport number + 4-digit PIN → redirects to `/pilgrim`
+
+Demo credentials:
+- Supervisors: `admin / nusuk2026`, `supervisor1 / hajj1446`
+- Pilgrims: `A12345678 / 1234` (Ahmed Ali), `B98765432 / 5678` (Muhammad Rahman), `C45678912 / 9012` (Fatima Noor)
+
+Auth flow:
+- `POST /api/auth/login` — validates credentials against `users` table, stores `userId/role/name/pilgrimId` in session
+- `GET /api/auth/me` — returns current session user or 401
+- `POST /api/auth/logout` — destroys session
+- `AuthContext` (`client/src/contexts/auth-context.tsx`) — React context wrapping the app, fetches `/api/auth/me` on mount
+- Route protection: AdminRoutes redirects to `/login?tab=supervisor` if not a supervisor; PilgrimRoutes redirects to `/login?tab=pilgrim` if not a pilgrim
+- Landing page buttons link to `/login?tab=supervisor` and `/login?tab=pilgrim`
+- `users` table in DB: id, username (uppercase, unique), password, role (`supervisor`|`pilgrim`), pilgrimId (nullable FK), name
+
+Environment variables also required:
+```
+SESSION_SECRET                      # Secret for express-session cookie signing
+```
 
 ---
 
