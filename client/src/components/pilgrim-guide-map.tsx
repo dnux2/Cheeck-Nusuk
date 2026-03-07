@@ -929,8 +929,8 @@ export function PilgrimGuideMap() {
 
       {/* Filter bar — hide during nav */}
       {!navRoute && (
-        <div className="px-3 py-2.5 bg-card border-b border-border overflow-x-auto flex-shrink-0">
-          <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`} style={{ minWidth: "max-content" }}>
+        <div className="px-3 py-2.5 bg-card border-b border-border flex-shrink-0">
+          <div className={`flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
             {(Object.entries(TYPE_CONFIG) as [FacilityType, typeof TYPE_CONFIG[FacilityType]][]).map(([type, cfg]) => {
               const sheetOpen = facilitySheet?.type === type;
               const nearest = FACILITIES.filter(f => f.type === type)
