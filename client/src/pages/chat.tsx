@@ -77,7 +77,7 @@ export function ChatPage() {
 
   const displayMessages = selectedPilgrimId === null
     ? messages.filter(m => m.pilgrimId === null)
-    : messages.filter(m => m.pilgrimId === null || m.pilgrimId === selectedPilgrimId);
+    : messages.filter(m => m.pilgrimId === selectedPilgrimId);
 
   const getPilgrimName = (id: number | null) => {
     if (!id) return t("allPilgrimsLabel");
