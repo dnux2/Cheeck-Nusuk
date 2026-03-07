@@ -58,6 +58,7 @@ Preferred communication style: Simple, everyday language.
 - **API**: REST endpoints defined in `shared/routes.ts` with Zod schemas for both input validation and response typing. All routes prefixed with `/api`.
 - **Storage Layer**: `DatabaseStorage` class in `server/storage.ts` implementing the `IStorage` interface — clean separation allowing future swap to in-memory or other backends.
 - **AI Integration**: OpenAI client (`server/routes.ts`) via environment variables `AI_INTEGRATIONS_OPENAI_API_KEY` and `AI_INTEGRATIONS_OPENAI_BASE_URL`. Routes support text translation and can be extended for voice/image.
+- **AI Crowd Assessment** (`POST /api/crowd/assess`): Calls `getMeccaContext()` (Aladhan API for real Hijri date, prayer times, season) then GPT-4.1-mini with full Islamic calendar context. Returns per-zone `load`, `status`, `confidence`, `reasoningAr/En`, `summaryAr/En`, and `context` (hijriDate, nextPrayer, nearPrayer). 15-min server-side cache. Frontend polls every 15 min via TanStack Query, updating sector heatmap and sidebar UI (AI banner, confidence badges, expandable reasoning).
 - **Build**: Vite handles the frontend build (`dist/public`); esbuild bundles the server to `dist/index.cjs` with key dependencies inlined (see `script/build.ts` allowlist) to reduce cold start time.
 
 **Replit Integration Modules** (`server/replit_integrations/`):

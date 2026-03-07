@@ -11,6 +11,94 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+// ── Mecca context helper ──────────────────────────────────────────────────────
+async function getMeccaContext() {
+  const now = new Date();
+  const meccaOffset = 3 * 60 * 60 * 1000;
+  const meccaNow = new Date(now.getTime() + meccaOffset);
+  const hour = meccaNow.getUTCHours();
+  const minute = meccaNow.getUTCMinutes();
+  const dayOfWeek = meccaNow.getUTCDay(); // 5 = Friday
+
+  let hijriDate = "unknown";
+  let hijriDateAr = "unknown";
+  let islamicMonth = 0;
+  let islamicDay = 0;
+  let nextPrayer = "Dhuhr";
+  let minutesToNext = 300;
+  let minutesSinceLast = 120;
+  let prayerTimesStr = "";
+
+  try {
+    const resp = await fetch(
+      "https://api.aladhan.com/v1/timingsByCity?city=Makkah&country=Saudi Arabia&method=4",
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const json = await resp.json() as any;
+    const timings = json.data.timings;
+    const hijri = json.data.date.hijri;
+
+    islamicMonth = parseInt(hijri.month.number);
+    islamicDay = parseInt(hijri.day);
+    const islamicYear = parseInt(hijri.year);
+    hijriDate = `${islamicDay} ${hijri.month.en} ${islamicYear} AH`;
+    hijriDateAr = `${islamicDay} ${hijri.month.ar} ${islamicYear} هـ`;
+
+    const prayers = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"] as const;
+    const currentMin = hour * 60 + minute;
+    const prayerMins: Record<string, number> = {};
+    for (const p of prayers) {
+      const [ph, pm] = (timings[p] as string).split(":").map(Number);
+      prayerMins[p] = ph * 60 + pm;
+    }
+
+    let minToNext = 9999;
+    for (const p of prayers) {
+      const diff = prayerMins[p] - currentMin;
+      if (diff > 0 && diff < minToNext) { minToNext = diff; nextPrayer = p; }
+    }
+    minutesToNext = minToNext === 9999 ? 360 : minToNext;
+
+    const passed = prayers.filter(p => prayerMins[p] <= currentMin);
+    if (passed.length > 0) {
+      minutesSinceLast = currentMin - prayerMins[passed[passed.length - 1]];
+    }
+
+    prayerTimesStr = prayers.map(p => `${p}: ${timings[p]}`).join(", ");
+  } catch {
+    // Fallback: estimate season from Gregorian date
+    const month = meccaNow.getUTCMonth() + 1;
+    const day = meccaNow.getUTCDate();
+    // Ramadan 1447 ≈ Feb 18 – Mar 18, 2026
+    const year = meccaNow.getUTCFullYear();
+    if (year === 2026 && ((month === 2 && day >= 18) || (month === 3 && day <= 18))) {
+      islamicMonth = 9; // Ramadan
+      islamicDay = month === 2 ? day - 17 : day + 11;
+      hijriDate = `${islamicDay} Ramadan 1447 AH`;
+      hijriDateAr = `${islamicDay} رمضان 1447 هـ`;
+    }
+    prayerTimesStr = "Fajr: 05:15, Dhuhr: 12:22, Asr: 15:44, Maghrib: 18:10, Isha: 19:40 (estimated)";
+  }
+
+  const isRamadan = islamicMonth === 9;
+  const isHajjSeason = islamicMonth === 12 && islamicDay >= 7 && islamicDay <= 13;
+  const isDhulHijja = islamicMonth === 12;
+  const isFriday = dayOfWeek === 5;
+  const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+  const nearPrayer = minutesToNext <= 30 || minutesSinceLast <= 45;
+
+  return {
+    hijriDate, hijriDateAr, islamicMonth, islamicDay,
+    isRamadan, isHajjSeason, isDhulHijja, isFriday,
+    timeStr, nextPrayer, minutesToNext, minutesSinceLast,
+    nearPrayer, prayerTimesStr,
+  };
+}
+
+// Server-side cache (15-min TTL) to avoid excessive OpenAI calls
+let crowdCache: { data: any; ts: number } | null = null;
+const CROWD_CACHE_TTL = 15 * 60 * 1000;
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -231,6 +319,113 @@ export async function registerRoutes(
         return res.status(400).json({ message: err.errors[0].message });
       }
       throw err;
+    }
+  });
+
+  // ── AI Crowd Assessment endpoint ─────────────────────────────────────────
+  app.post("/api/crowd/assess", async (_req, res) => {
+    try {
+      // Serve from cache if fresh
+      if (crowdCache && Date.now() - crowdCache.ts < CROWD_CACHE_TTL) {
+        return res.json({ ...crowdCache.data, cached: true });
+      }
+
+      const ctx = await getMeccaContext();
+
+      const prompt = `You are an expert AI system for Hajj & Umrah crowd management at the holy sites in Makkah, Saudi Arabia.
+
+CURRENT DATE & TIME IN MAKKAH:
+- Gregorian: ${new Date().toUTCString()}
+- Makkah local time: ${ctx.timeStr} (UTC+3)
+- Islamic date: ${ctx.hijriDate} / ${ctx.hijriDateAr}
+- Is Ramadan: ${ctx.isRamadan}
+- Is Hajj season (7-13 Dhul-Hijja): ${ctx.isHajjSeason}
+- Is Dhul-Hijja month: ${ctx.isDhulHijja}
+- Is Friday: ${ctx.isFriday}
+- Minutes until next prayer (${ctx.nextPrayer}): ${ctx.minutesToNext} min
+- Minutes since last prayer: ${ctx.minutesSinceLast} min
+- Near prayer time (within 30 min before or 45 min after): ${ctx.nearPrayer}
+- Prayer times today: ${ctx.prayerTimesStr}
+
+HOLY SITES (with real capacities from official sources):
+1. id="haram" — Al-Masjid Al-Haram (Grand Mosque), capacity: 2,500,000 worshippers
+   - Always active year-round for Tawaf, Salah, Umrah
+   - Peak during Ramadan (especially last 10 nights), Friday Jumu'ah, and 5 daily prayers
+   - During Hajj: up to 1.5M pilgrims
+   - Non-Hajj Ramadan 2025 peak: 500,000/day (record), average 2.5M/day during Ramadan
+
+2. id="mina" — Mina Tent City, capacity: 3,000,000 pilgrims
+   - ONLY active during Hajj days (8-13 Dhul-Hijja)
+   - Completely empty in all other months
+
+3. id="jamarat" — Jamarat Bridge (Stoning of the Devil), capacity: 200,000/hour throughput
+   - ONLY active during Hajj days (10-13 Dhul-Hijja)
+   - Most critical bottleneck in all of Hajj — was site of 2015 stampede
+   - Completely empty in all other months
+
+4. id="muzdalifah" — Muzdalifah Sacred Grounds, capacity: 3,000,000 pilgrims
+   - ONLY active on night of 9-10 Dhul-Hijja (pilgrims overnight here after Arafat)
+   - Completely empty all other times
+
+5. id="arafat" — Plain of Arafat, capacity: 3,000,000 pilgrims  
+   - Main gathering: 9 Dhul-Hijja (Hajj day), ALL 1.8M pilgrims gather here simultaneously
+   - Rest of year: very few visitors (religious scholars, sightseers) — essentially empty
+
+INSTRUCTIONS:
+Based on the EXACT current date, time, and season above, provide a REALISTIC crowd assessment for each site.
+Key rules:
+- If NOT Hajj season (Dhul-Hijja 7-13): Mina, Jamarat, Muzdalifah load = 0
+- If NOT Arafat Day (9 Dhul-Hijja): Arafat load < 3%
+- Haram is ALWAYS open — adjust based on Ramadan/prayer times/Friday
+- During Ramadan: Haram base load 70-90%, spikes to 95%+ at prayer times
+- During last 10 nights of Ramadan (21-29): max crowds at Haram
+- Regular non-Ramadan non-Hajj: Haram base 20-40%, spikes at prayer times
+- confidence: "high" if season clearly determines load, "medium" if time-dependent
+
+Return ONLY valid JSON matching this exact schema:
+{
+  "zones": [
+    {"id": "haram", "load": 84, "status": "warning", "confidence": "high", "reasoningAr": "منتصف رمضان...", "reasoningEn": "Mid-Ramadan..."},
+    {"id": "mina", "load": 0, "status": "empty", "confidence": "high", "reasoningAr": "...", "reasoningEn": "..."},
+    {"id": "jamarat", "load": 0, "status": "empty", "confidence": "high", "reasoningAr": "...", "reasoningEn": "..."},
+    {"id": "muzdalifah", "load": 0, "status": "empty", "confidence": "high", "reasoningAr": "...", "reasoningEn": "..."},
+    {"id": "arafat", "load": 1, "status": "empty", "confidence": "high", "reasoningAr": "...", "reasoningEn": "..."}
+  ],
+  "season": "رمضان 1447 هـ",
+  "summaryAr": "جملة واحدة تصف الوضع الحالي",
+  "summaryEn": "One sentence describing current situation"
+}
+Status values: "empty" (0-4%), "normal" (5-49%), "busy" (50-79%), "warning" (80-100%).`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 800,
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      const parsed = JSON.parse(raw);
+
+      const result = {
+        ...parsed,
+        context: {
+          hijriDate: ctx.hijriDateAr,
+          timeStr: ctx.timeStr,
+          isRamadan: ctx.isRamadan,
+          isHajjSeason: ctx.isHajjSeason,
+          nextPrayer: ctx.nextPrayer,
+          minutesToNext: ctx.minutesToNext,
+          nearPrayer: ctx.nearPrayer,
+        },
+        assessedAt: new Date().toISOString(),
+      };
+
+      crowdCache = { data: result, ts: Date.now() };
+      res.json(result);
+    } catch (err) {
+      console.error("Crowd assess error:", err);
+      res.status(500).json({ error: "Assessment failed" });
     }
   });
 

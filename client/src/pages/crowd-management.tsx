@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { RealMap, type NavRoute, type FacilityType, type Facility, FACILITIES, TYPE_CFG, SUPERVISOR_POS, haversineM, getFacilityCrowdScore, fetchOSRM } from "@/components/real-map";
-import { AlertCircle, RefreshCw, Radio, Navigation, MapPin, Clock, ArrowLeft, ArrowRight, ArrowUp, CornerDownLeft, Footprints, X, ChevronDown, ChevronUp, Sparkles, Users } from "lucide-react";
+import { AlertCircle, RefreshCw, Radio, Navigation, MapPin, Clock, ArrowLeft, ArrowRight, ArrowUp, CornerDownLeft, Footprints, X, ChevronDown, ChevronUp, Sparkles, Users, BrainCircuit, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePilgrims } from "@/hooks/use-pilgrims";
 import { useLanguage } from "@/contexts/language-context";
 import { useSearch } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 function fmtDist(m: number, ar: boolean) {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} ${ar ? "كم" : "km"}` : `${m} ${ar ? "م" : "m"}`;
@@ -28,26 +29,40 @@ interface SectorData {
   nameAr: string;
   load: number;
   status: string;
+  reasoningAr?: string;
+  reasoningEn?: string;
+  confidence?: "high" | "medium" | "low";
 }
 
 const BASE_SECTORS: SectorData[] = [
-  { id: "S1", nameEn: "Mina Tents",      nameAr: "خيام منى",       load: 45, status: "Normal"  },
-  { id: "S2", nameEn: "Arafat",          nameAr: "عرفات",           load: 20, status: "Empty"   },
-  { id: "S3", nameEn: "Muzdalifah",      nameAr: "مزدلفة",          load: 15, status: "Empty"   },
-  { id: "S4", nameEn: "Jamarat Bridge",  nameAr: "جسر الجمرات",     load: 88, status: "Warning" },
-  { id: "S5", nameEn: "Grand Mosque",    nameAr: "المسجد الحرام",   load: 72, status: "Busy"    },
+  { id: "S1", nameEn: "Mina Tents",      nameAr: "خيام منى",       load: 0,  status: "Empty"   },
+  { id: "S2", nameEn: "Arafat",          nameAr: "عرفات",           load: 0,  status: "Empty"   },
+  { id: "S3", nameEn: "Muzdalifah",      nameAr: "مزدلفة",          load: 0,  status: "Empty"   },
+  { id: "S4", nameEn: "Jamarat Bridge",  nameAr: "جسر الجمرات",     load: 0,  status: "Empty"   },
+  { id: "S5", nameEn: "Grand Mosque",    nameAr: "المسجد الحرام",   load: 0,  status: "Empty"   },
 ];
 
-function simulateLoad(base: number): number {
-  const delta = (Math.random() - 0.5) * 6;
-  return Math.min(100, Math.max(0, Math.round(base + delta)));
-}
+// Zone ID → Sector ID mapping
+const ZONE_TO_SECTOR: Record<string, string> = {
+  haram: "S5", mina: "S1", jamarat: "S4", muzdalifah: "S3", arafat: "S2",
+};
 
-function loadStatus(load: number): string {
-  if (load >= 80) return "Warning";
-  if (load >= 50) return "Busy";
-  if (load >= 5)  return "Normal";
-  return "Empty";
+interface CrowdAssessment {
+  zones: Array<{
+    id: string; load: number; status: string;
+    confidence: "high" | "medium" | "low";
+    reasoningAr: string; reasoningEn: string;
+  }>;
+  season: string;
+  summaryAr: string;
+  summaryEn: string;
+  context: {
+    hijriDate: string; timeStr: string;
+    isRamadan: boolean; isHajjSeason: boolean;
+    nextPrayer: string; minutesToNext: number; nearPrayer: boolean;
+  };
+  assessedAt: string;
+  cached?: boolean;
 }
 
 export function CrowdManagementPage() {
@@ -65,7 +80,8 @@ export function CrowdManagementPage() {
     : undefined;
 
   const [sectors, setSectors] = useState<SectorData[]>(BASE_SECTORS);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [reasoningOpen, setReasoningOpen] = useState<string | null>(null);
   const [navRoute, setNavRoute] = useState<NavRoute | null>(null);
   const [stepsExpanded, setStepsExpanded] = useState(false);
 
@@ -99,16 +115,35 @@ export function CrowdManagementPage() {
     if (route) { setNavRoute(route); setStepsExpanded(false); }
   }, [lang]);
 
+  // ── AI crowd assessment (polls every 15 minutes) ─────────────────────────
+  const { data: assessment, isLoading: assessLoading, refetch: refetchAssessment } = useQuery<CrowdAssessment>({
+    queryKey: ["/api/crowd/assess"],
+    queryFn: async () => {
+      const res = await fetch("/api/crowd/assess", { method: "POST" });
+      if (!res.ok) throw new Error("Assessment failed");
+      return res.json();
+    },
+    refetchInterval: 15 * 60 * 1000,
+    staleTime: 14 * 60 * 1000,
+    retry: 2,
+  });
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSectors(prev => prev.map(s => {
-        const newLoad = simulateLoad(s.load);
-        return { ...s, load: newLoad, status: loadStatus(newLoad) };
-      }));
-      setLastUpdated(new Date());
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!assessment?.zones) return;
+    setSectors(prev => prev.map(s => {
+      const zone = assessment.zones.find(z => ZONE_TO_SECTOR[z.id] === s.id);
+      if (!zone) return s;
+      return {
+        ...s,
+        load: zone.load,
+        status: zone.status.charAt(0).toUpperCase() + zone.status.slice(1),
+        reasoningAr: zone.reasoningAr,
+        reasoningEn: zone.reasoningEn,
+        confidence: zone.confidence,
+      };
+    }));
+    setLastUpdated(new Date(assessment.assessedAt));
+  }, [assessment]);
 
   const warningZones = sectors.filter(s => s.load >= 80);
 
@@ -243,11 +278,28 @@ export function CrowdManagementPage() {
             <h1 className="text-3xl font-bold text-foreground">{t("crowdMonitoring")}</h1>
             <p className="text-muted-foreground mt-1">{t("crowdManagementDesc")}</p>
           </div>
-          <div className={`flex items-center gap-2 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
-              <RefreshCw className="w-3 h-3 animate-spin" />
-              <span dir="ltr">{lastUpdated.toLocaleTimeString()}</span>
-            </div>
+          <div className={`flex items-center gap-2 flex-shrink-0 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+            {assessLoading ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg border border-primary/20 text-xs font-semibold">
+                <BrainCircuit className="w-3.5 h-3.5 animate-pulse" />
+                {ar ? "AI يُقيّم الآن…" : "AI assessing…"}
+              </div>
+            ) : assessment ? (
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 text-primary rounded-lg border border-primary/20 text-xs font-semibold ${isRTL ? "flex-row-reverse" : ""}`}>
+                <BrainCircuit className="w-3.5 h-3.5" />
+                <span>{ar ? assessment.context?.hijriDate ?? "" : "AI Live"}</span>
+                <span className="text-muted-foreground">·</span>
+                <span dir="ltr">{lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}</span>
+                <button onClick={() => refetchAssessment()} title={ar ? "تحديث الآن" : "Refresh now"} className="ml-1 hover:text-primary/70 transition-colors">
+                  <RefreshCw className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg border border-border text-xs font-semibold">
+                <RefreshCw className="w-3 h-3" />
+                {ar ? "جارٍ التحميل" : "Loading"}
+              </div>
+            )}
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg border border-border text-xs font-semibold">
               <Radio className="w-3.5 h-3.5" />
               {ar ? "بث مباشر" : "Live"}
@@ -338,7 +390,34 @@ export function CrowdManagementPage() {
 
         {/* Right: sector sidebar */}
         <div className="w-full lg:w-80 flex flex-col gap-4">
-          <h3 className={`font-display font-bold text-lg ${isRTL ? "text-right" : ""}`}>{t("sectorStatus")}</h3>
+          <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+            <h3 className={`font-display font-bold text-lg ${isRTL ? "text-right" : ""}`}>{t("sectorStatus")}</h3>
+            {assessLoading && (
+              <div className="flex items-center gap-1 text-xs text-primary font-medium animate-pulse">
+                <BrainCircuit className="w-3.5 h-3.5" />
+                {ar ? "جارٍ التقييم…" : "Assessing…"}
+              </div>
+            )}
+          </div>
+
+          {/* AI summary banner */}
+          {assessment?.summaryAr && !assessLoading && (
+            <div className={`bg-primary/5 border border-primary/20 rounded-xl px-3.5 py-3 text-xs leading-relaxed ${isRTL ? "text-right" : ""}`} dir={isRTL ? "rtl" : "ltr"}>
+              <div className={`flex items-center gap-1.5 mb-1 text-primary font-bold text-[11px] uppercase tracking-wide ${isRTL ? "flex-row-reverse" : ""}`}>
+                <BrainCircuit className="w-3 h-3" />
+                {ar ? `تقييم ذكاء اصطناعي · ${assessment.season}` : `AI Assessment · ${assessment.season}`}
+              </div>
+              <p className="text-muted-foreground">{ar ? assessment.summaryAr : assessment.summaryEn}</p>
+              {assessment.context?.nearPrayer && (
+                <p className={`mt-1.5 text-primary/80 font-semibold flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <span>🕌</span>
+                  {ar
+                    ? `اقتراب وقت ${assessment.context.nextPrayer === "Fajr" ? "الفجر" : assessment.context.nextPrayer === "Dhuhr" ? "الظهر" : assessment.context.nextPrayer === "Asr" ? "العصر" : assessment.context.nextPrayer === "Maghrib" ? "المغرب" : "العشاء"} — الحرم في تصاعد`
+                    : `${assessment.context.nextPrayer} prayer approaching — Haram crowd rising`}
+                </p>
+              )}
+            </div>
+          )}
 
           {warningZones.length > 0 && (
             <div className="bg-destructive/10 border border-destructive/40 rounded-xl p-4" dir={isRTL ? "rtl" : "ltr"}>
@@ -355,27 +434,63 @@ export function CrowdManagementPage() {
           {sectors.map(s => {
             const isWarning = s.load >= 80;
             const isBusy = s.load >= 50 && s.load < 80;
+            const isOpen = reasoningOpen === s.id;
+            const reasoning = ar ? s.reasoningAr : s.reasoningEn;
             return (
-              <div key={s.id} className={`bg-card p-4 rounded-xl border shadow-sm ${isWarning ? "border-destructive/40" : "border-border"}`}>
-                <div className={`flex justify-between items-end mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <div className={isRTL ? "text-right" : ""}>
-                    <div className="text-xs font-bold text-muted-foreground mb-1 font-mono">{s.id}</div>
-                    <div className="font-bold">{ar ? s.nameAr : s.nameEn}</div>
-                  </div>
-                  <div className={`text-right ${isRTL ? "text-left" : ""}`}>
-                    <div className={`text-lg font-bold font-mono ${isWarning ? "text-destructive" : isBusy ? "text-accent" : "text-primary"}`}>{s.load}%</div>
-                    <div className={`text-xs font-semibold ${isWarning ? "text-destructive/70" : "text-muted-foreground"}`}>
-                      {ar ? (isWarning ? "تحذير" : isBusy ? "مزدحم" : s.load < 5 ? "فارغ" : "طبيعي") : s.status}
+              <div key={s.id} className={`bg-card rounded-xl border shadow-sm ${isWarning ? "border-destructive/40" : "border-border"} overflow-hidden`}>
+                <div className="p-4">
+                  <div className={`flex justify-between items-end mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <div className={isRTL ? "text-right" : ""}>
+                      <div className={`flex items-center gap-1.5 mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <span className="text-xs font-bold text-muted-foreground font-mono">{s.id}</span>
+                        {s.confidence && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.confidence === "high" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"}`}>
+                            {ar ? (s.confidence === "high" ? "ثقة عالية" : "ثقة متوسطة") : s.confidence}
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-bold">{ar ? s.nameAr : s.nameEn}</div>
+                    </div>
+                    <div className={`text-right ${isRTL ? "text-left" : ""}`}>
+                      <div className={`text-lg font-bold font-mono ${isWarning ? "text-destructive" : isBusy ? "text-accent" : "text-primary"}`}>{s.load}%</div>
+                      <div className={`text-xs font-semibold ${isWarning ? "text-destructive/70" : "text-muted-foreground"}`}>
+                        {ar ? (isWarning ? "تحذير" : isBusy ? "مزدحم" : s.load < 5 ? "فارغ" : "طبيعي") : s.status}
+                      </div>
                     </div>
                   </div>
+                  <div className="h-2.5 bg-secondary rounded-full overflow-hidden mb-2">
+                    <div className={`h-full rounded-full transition-all duration-700 ${isWarning ? "bg-destructive" : isBusy ? "bg-accent" : s.load < 5 ? "bg-muted-foreground/30" : "bg-primary"}`} style={{ width: `${Math.max(s.load, 0.5)}%` }} />
+                  </div>
+                  {isWarning && <p className={`text-xs text-destructive/80 mb-2 font-medium ${isRTL ? "text-right" : ""}`}>{ar ? "⚠ اكتظاظ شديد — يُنصح بتحويل المسار" : "⚠ High congestion — redirect advised"}</p>}
+                  {reasoning && (
+                    <button
+                      onClick={() => setReasoningOpen(isOpen ? null : s.id)}
+                      className={`flex items-center gap-1 text-[11px] text-primary/70 hover:text-primary transition-colors font-medium ${isRTL ? "flex-row-reverse" : ""}`}
+                      data-testid={`button-reasoning-${s.id}`}
+                    >
+                      <BrainCircuit className="w-3 h-3" />
+                      {ar ? "سبب التقييم" : "AI reasoning"}
+                      <ChevronRight className={`w-3 h-3 transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                    </button>
+                  )}
                 </div>
-                <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-1000 ${isWarning ? "bg-destructive" : isBusy ? "bg-accent" : "bg-muted-foreground/40"}`} style={{ width: `${s.load}%` }} />
-                </div>
-                {isWarning && <p className={`text-xs text-destructive/80 mt-2 font-medium ${isRTL ? "text-right" : ""}`}>{ar ? "⚠ اكتظاظ شديد — يُنصح بتحويل المسار" : "⚠ High congestion — redirect advised"}</p>}
+                {reasoning && isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                    className="border-t border-border bg-muted/30 px-4 py-3"
+                    dir={isRTL ? "rtl" : "ltr"}
+                  >
+                    <p className={`text-xs text-muted-foreground leading-relaxed ${isRTL ? "text-right" : ""}`}>{reasoning}</p>
+                  </motion.div>
+                )}
               </div>
             );
           })}
+
+          {/* Source note */}
+          <p className={`text-[10px] text-muted-foreground/50 px-1 ${isRTL ? "text-right" : ""}`}>
+            {ar ? "المصدر: رئاسة شؤون المسجد الحرام · إحصاءات الحج 2024-2026 · Aladhan API" : "Source: General Presidency + Hajj 2024-2026 data · Aladhan API"}
+          </p>
         </div>
       </div>
     </div>
