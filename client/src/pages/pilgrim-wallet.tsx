@@ -201,7 +201,7 @@ export function PilgrimWalletPage() {
           </div>
           <div className="px-5 py-4 space-y-3">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "رقمي للتواصل الطارئ" : "Emergency Contact"}</div>
               <div className="text-sm font-semibold text-foreground">{pilgrim?.emergencyContact || (ar ? "غير محدد — يُرجى التحديث" : "Not set — please update")}</div>
             </div>
             <div className="border-t border-border pt-3 space-y-1.5">
@@ -276,7 +276,7 @@ export function PilgrimWalletPage() {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</Label>
+              <Label className="text-xs text-muted-foreground">{ar ? "رقمي للتواصل الطارئ" : "Emergency Contact"}</Label>
               <Input
                 value={form.emergencyContact}
                 onChange={e => setForm(f => ({ ...f, emergencyContact: e.target.value }))}
