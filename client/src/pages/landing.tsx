@@ -12,7 +12,6 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans" dir={isRTL ? "rtl" : "ltr"}>
-
       {/* ── Navbar (floating over hero) ── */}
       <nav className="fixed w-full z-50 bg-transparent">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -41,7 +40,6 @@ export function LandingPage() {
           </div>
         </div>
       </nav>
-
       {/* ── Full-width Hero Banner ── */}
       <div className="relative w-full h-[88vh] min-h-[500px] overflow-hidden">
         {/* Background image */}
@@ -71,7 +69,7 @@ export function LandingPage() {
           {/* Badge — below heading */}
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.18 }}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white font-semibold text-sm border border-white/25"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white border border-white/25 text-[12px] font-bold"
           >
             <span className="relative flex h-2 w-2 flex-shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -137,7 +135,6 @@ export function LandingPage() {
           </div>
         </motion.div>
       </div>
-
       {/* ── Features Grid ── */}
       <main className="flex-1">
         <section className="py-20 bg-card border-t border-border/50">
