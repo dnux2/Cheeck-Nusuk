@@ -22,6 +22,8 @@ export function PilgrimWalletPage() {
   const { toast } = useToast();
   const ar = lang === "ar";
   const [editOpen, setEditOpen] = useState(false);
+  const [editEmergencyOpen, setEditEmergencyOpen] = useState(false);
+  const [emergencyForm, setEmergencyForm] = useState({ emergencyContact: "" });
 
   const pilgrimId = 1;
 
@@ -50,6 +52,25 @@ export function PilgrimWalletPage() {
       toast({ title: ar ? "خطأ في الحفظ" : "Save failed", variant: "destructive" });
     },
   });
+
+  const updateEmergency = useMutation({
+    mutationFn: (data: { emergencyContact: string }) =>
+      apiRequest("PATCH", `/api/pilgrims/${pilgrimId}/health`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/pilgrims", pilgrimId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pilgrims"] });
+      setEditEmergencyOpen(false);
+      toast({ title: ar ? "✅ تم حفظ رقم التواصل الطارئ" : "✅ Emergency contact saved" });
+    },
+    onError: () => {
+      toast({ title: ar ? "خطأ في الحفظ" : "Save failed", variant: "destructive" });
+    },
+  });
+
+  const handleEditEmergency = () => {
+    setEmergencyForm({ emergencyContact: pilgrim?.emergencyContact || "" });
+    setEditEmergencyOpen(true);
+  };
 
   const handleEdit = () => {
     setForm({
@@ -195,14 +216,30 @@ export function PilgrimWalletPage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
           className="rounded-3xl bg-card border border-border shadow-sm overflow-hidden"
         >
-          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-            <Phone className="w-4 h-4 text-primary" />
-            <span className="font-bold text-sm text-foreground">{ar ? "معلومات الطوارئ" : "Emergency Info"}</span>
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-primary" />
+              <span className="font-bold text-sm text-foreground">{ar ? "معلومات الطوارئ" : "Emergency Info"}</span>
+            </div>
+            <button
+              onClick={handleEditEmergency}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-primary text-xs font-bold transition-colors"
+              data-testid="btn-edit-emergency"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              {ar ? "تحديث" : "Update"}
+            </button>
           </div>
           <div className="px-5 py-4 space-y-3">
             <div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "رقم هاتفي" : "My Phone"}</div>
+              <div className="text-sm font-semibold text-foreground" dir="ltr">{pilgrim?.phone || (ar ? "غير محدد" : "Not set")}</div>
+            </div>
+            <div>
               <div className="text-xs text-muted-foreground mb-1">{ar ? "رقمي للتواصل الطارئ" : "Emergency Contact"}</div>
-              <div className="text-sm font-semibold text-foreground">{pilgrim?.emergencyContact || (ar ? "غير محدد — يُرجى التحديث" : "Not set — please update")}</div>
+              <div className={`text-sm font-semibold ${pilgrim?.emergencyContact ? "text-foreground" : "text-amber-600 dark:text-amber-400"}`}>
+                {pilgrim?.emergencyContact || (ar ? "غير محدد — اضغط تحديث" : "Not set — tap Update")}
+              </div>
             </div>
             <div className="border-t border-border pt-3 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
@@ -301,6 +338,49 @@ export function PilgrimWalletPage() {
                 data-testid="btn-save-health"
               >
                 {updateHealth.isPending ? (ar ? "جاري الحفظ..." : "Saving...") : (ar ? "حفظ" : "Save")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Emergency Contact Dialog */}
+      <Dialog open={editEmergencyOpen} onOpenChange={setEditEmergencyOpen}>
+        <DialogContent className="max-w-sm rounded-3xl" dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{ar ? "تحديث رقم التواصل الطارئ" : "Update Emergency Contact"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="p-3 rounded-xl bg-secondary/50 text-xs text-muted-foreground">
+              {ar
+                ? "أضف رقم هاتف شخص قريب منك يمكن التواصل معه في حالات الطوارئ"
+                : "Add a phone number of a close person reachable in emergencies"}
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">{ar ? "رقمي للتواصل الطارئ" : "Emergency Contact"}</Label>
+              <Input
+                value={emergencyForm.emergencyContact}
+                onChange={e => setEmergencyForm({ emergencyContact: e.target.value })}
+                placeholder={ar ? "الاسم + رقم الهاتف" : "Name + phone number"}
+                className="mt-1 rounded-xl"
+                data-testid="input-emergency-contact-dialog"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={() => setEditEmergencyOpen(false)}
+                className="flex-1 rounded-xl"
+              >
+                {ar ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button
+                onClick={() => updateEmergency.mutate(emergencyForm)}
+                disabled={updateEmergency.isPending}
+                className="flex-1 rounded-xl bg-primary hover:bg-[#0a3d34] text-white"
+                data-testid="btn-save-emergency"
+              >
+                {updateEmergency.isPending ? (ar ? "جاري الحفظ..." : "Saving...") : (ar ? "حفظ" : "Save")}
               </Button>
             </div>
           </div>
