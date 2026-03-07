@@ -101,9 +101,43 @@ export function CrowdManagementPage() {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-        {/* Map container */}
-        <div className="flex-1 rounded-2xl overflow-hidden border border-border/50 shadow-lg relative min-h-[400px]">
-          <RealMap pilgrims={pilgrims} sectorData={sectors} highlightedPilgrimId={highlightedPilgrimId} />
+        {/* Map + legend below */}
+        <div className="flex-1 flex flex-col gap-2 min-h-0">
+          <div className="flex-1 rounded-2xl overflow-hidden border border-border/50 shadow-lg relative min-h-[360px]">
+            <RealMap pilgrims={pilgrims} sectorData={sectors} highlightedPilgrimId={highlightedPilgrimId} />
+          </div>
+
+          {/* Legend strip — outside the map so it never covers content */}
+          <div className={`flex-shrink-0 flex flex-wrap items-center gap-x-5 gap-y-1.5 px-2 py-1.5 bg-card border border-border/60 rounded-xl text-xs text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`} dir={isRTL ? "rtl" : "ltr"}>
+            <span className="font-bold text-foreground/60 text-[10px] uppercase tracking-wider">{ar ? "مفتاح الألوان" : "Legend"}</span>
+            <span className="w-px h-4 bg-border/60 hidden sm:block" />
+            {[
+              { color: "#EF4444", label: ar ? "اكتظاظ" : "Warning" },
+              { color: "#F59E0B", label: ar ? "مزدحم" : "Busy" },
+              { color: "#10B981", label: ar ? "طبيعي" : "Normal" },
+              { color: "#6B7280", label: ar ? "فارغ" : "Empty" },
+            ].map(item => (
+              <span key={item.label} className={`flex items-center gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                {item.label}
+              </span>
+            ))}
+            <span className="w-px h-4 bg-border/60 hidden sm:block" />
+            {[
+              { color: "#10B981", label: ar ? "حاج سارٍ" : "Valid" },
+              { color: "#F59E0B", label: ar ? "منتهي" : "Expired" },
+              { color: "#EF4444", label: ar ? "طوارئ" : "Emergency" },
+              { color: "#2563EB", label: ar ? "المشرف" : "Supervisor", diamond: true },
+            ].map(item => (
+              <span key={item.label} className={`flex items-center gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                {item.diamond
+                  ? <span className="w-2.5 h-2.5 flex-shrink-0 rounded-sm" style={{ background: item.color, transform: "rotate(45deg)" }} />
+                  : <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                }
+                {item.label}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Sector status sidebar */}

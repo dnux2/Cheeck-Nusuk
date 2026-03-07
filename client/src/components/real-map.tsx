@@ -687,35 +687,6 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
         )}
       </AnimatePresence>
 
-      {/* ── Legend ────────────────────────────────────────────────────────── */}
-      <div className={`absolute top-4 ${isRTL ? "left-4" : "right-4"} bg-card/92 backdrop-blur-xl border border-border rounded-xl p-3 shadow-xl`} style={{ zIndex: 850 }} dir={isRTL ? "rtl" : "ltr"}>
-        <div className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">{ar ? "مستوى الازدحام" : "Density"}</div>
-        {[
-          { color: "#EF4444", label: ar ? "تحذير" : "Warning" },
-          { color: "#F59E0B", label: ar ? "مزدحم" : "Busy" },
-          { color: "#10B981", label: ar ? "طبيعي" : "Normal" },
-          { color: "#6B7280", label: ar ? "فارغ" : "Empty" },
-        ].map(item => (
-          <div key={item.label} className={`flex items-center gap-2 text-xs mb-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: item.color }} />
-            <span className="text-foreground/80">{item.label}</span>
-          </div>
-        ))}
-        <div className="border-t border-border/50 mt-2 pt-2">
-          {[
-            { node: <span className="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0" />, label: ar ? "حاج طبيعي" : "Normal" },
-            { node: <span className="w-3 h-3 rounded-full bg-amber-400 flex-shrink-0" />, label: ar ? "منتهي التصريح" : "Expired" },
-            { node: <span className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />, label: ar ? "طوارئ" : "Emergency" },
-            { node: <span className="w-3 h-3 rounded flex-shrink-0 bg-blue-500" style={{ transform: "rotate(45deg)", borderRadius: 2 }} />, label: ar ? "المشرف" : "Supervisor" },
-          ].map((row, i) => (
-            <div key={i} className={`flex items-center gap-2 text-xs mb-1 last:mb-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-              {row.node}
-              <span className="text-foreground/80">{row.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Attribution */}
       <div className="absolute bottom-2 right-12 text-[10px] text-black/40 font-mono pointer-events-none" style={{ zIndex: 850 }} dir="ltr">
         © CARTO / OpenStreetMap
