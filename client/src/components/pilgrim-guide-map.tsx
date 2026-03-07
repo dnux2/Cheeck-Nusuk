@@ -6,7 +6,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { type Pilgrim } from "@shared/schema";
-import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw, LocateFixed, MousePointer2, Users, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw, LocateFixed, MousePointer2, Users, AlertTriangle, ArrowRight, CheckCircle2, Search } from "lucide-react";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -544,6 +544,45 @@ export function PilgrimGuideMap() {
 
   const [facilitySheet, setFacilitySheet] = useState<{ type: FacilityType; selectedId: string } | null>(null);
 
+  const [originPanelOpen, setOriginPanelOpen] = useState(false);
+  const [originSearchQ, setOriginSearchQ] = useState("");
+  const [originSearchResults, setOriginSearchResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+  const [originSearchLoading, setOriginSearchLoading] = useState(false);
+  const originSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchOriginByName = async (q: string) => {
+    if (!q.trim()) { setOriginSearchResults([]); return; }
+    setOriginSearchLoading(true);
+    try {
+      const params = new URLSearchParams({ q, format: "json", limit: "6", bounded: "1",
+        viewbox: "39.7,21.2,40.1,21.6", addressdetails: "0" });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { "Accept-Language": ar ? "ar" : "en" }
+      });
+      const data = await res.json();
+      setOriginSearchResults(Array.isArray(data) ? data : []);
+    } catch {
+      setOriginSearchResults([]);
+    } finally {
+      setOriginSearchLoading(false);
+    }
+  };
+
+  const handleOriginSearchInput = (v: string) => {
+    setOriginSearchQ(v);
+    if (originSearchTimer.current) clearTimeout(originSearchTimer.current);
+    originSearchTimer.current = setTimeout(() => searchOriginByName(v), 500);
+  };
+
+  const pickOriginFromSearch = (lat: string, lon: string, name: string) => {
+    setCustomOrigin({ lat: parseFloat(lat), lng: parseFloat(lon) });
+    setOriginPanelOpen(false);
+    setOriginSearchQ("");
+    setOriginSearchResults([]);
+    setPickingOrigin(false);
+    toast({ title: ar ? `📍 تم تحديد: ${name.split(",")[0]}` : `📍 Set to: ${name.split(",")[0]}` });
+  };
+
   const currentHour = new Date().getHours();
 
   const stopNav = () => {
@@ -733,48 +772,118 @@ export function PilgrimGuideMap() {
         </div>
       )}
 
-      {/* Origin picker bar — always visible */}
-      <div className={`px-4 py-2 flex items-center justify-between gap-2 border-b flex-shrink-0 transition-colors ${pickingOrigin ? "border-blue-300 bg-blue-50" : "border-border bg-card"}`}>
-        <div className="flex items-center gap-2 min-w-0">
-          {pickingOrigin ? (
-            <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 animate-pulse">
-              <MousePointer2 className="w-3.5 h-3.5 flex-shrink-0" />
-              {ar ? "انقر على الخريطة لاختيار نقطة البداية" : "Tap the map to set start location"}
-            </span>
-          ) : customOrigin ? (
-            <span className="text-xs font-semibold text-[#1A5C8A] flex items-center gap-1.5 truncate">
-              <span>🚩</span>
-              <span>{ar ? "البداية: موقع مخصص" : "Start: Custom location"}</span>
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <LocateFixed className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{ar ? (gpsStatus === "granted" ? "البداية: موقعك الحالي (GPS)" : "البداية: موقع افتراضي") : (gpsStatus === "granted" ? "Start: Your GPS location" : "Start: Default location")}</span>
-            </span>
+      {/* Origin picker bar */}
+      {!navRoute && (
+        <div className="flex-shrink-0 border-b border-border bg-card">
+          {/* Status row */}
+          <div className="px-4 py-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {pickingOrigin ? (
+                <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 animate-pulse">
+                  <MousePointer2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  {ar ? "انقر على الخريطة لتحديد نقطة البداية" : "Tap the map to set start location"}
+                </span>
+              ) : customOrigin ? (
+                <span className="text-xs font-semibold text-[#1A5C8A] flex items-center gap-1.5 truncate">
+                  <span>🚩</span>
+                  <span>{ar ? "نقطة البداية: موقع مخصص" : "Start: Custom location"}</span>
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <LocateFixed className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{ar ? (gpsStatus === "granted" ? "نقطة البداية: GPS" : "نقطة البداية: افتراضي") : (gpsStatus === "granted" ? "Start: GPS location" : "Start: Default")}</span>
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {customOrigin && (
+                <button onClick={resetToGps} data-testid="btn-reset-origin"
+                  className="text-[11px] px-2 py-1 rounded-lg border border-[#a8d4cb] text-[#0E4D41] bg-[#eaf6f2] font-bold hover:bg-[#d4ede6] transition-colors flex items-center gap-1">
+                  <LocateFixed className="w-3 h-3" />
+                  {ar ? "موقعي" : "My GPS"}
+                </button>
+              )}
+              {(pickingOrigin || originPanelOpen) ? (
+                <button onClick={() => { setPickingOrigin(false); setOriginPanelOpen(false); setOriginSearchQ(""); setOriginSearchResults([]); }}
+                  className="text-[11px] px-2 py-1 rounded-lg border border-red-200 text-red-600 bg-white font-bold hover:bg-red-50 transition-colors">
+                  {ar ? "إلغاء" : "Cancel"}
+                </button>
+              ) : (
+                <button onClick={() => setOriginPanelOpen(o => !o)} data-testid="btn-change-start"
+                  className="text-[11px] px-2 py-1 rounded-lg border border-border text-foreground font-semibold hover:border-[#0E4D41] hover:text-[#0E4D41] transition-colors flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {ar ? "تغيير نقطة البداية" : "Change start"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Expanded panel — two options */}
+          {originPanelOpen && !pickingOrigin && (
+            <div className="border-t border-border">
+              {/* Two option buttons */}
+              <div className="px-3 pt-2 pb-2 flex gap-2">
+                <button
+                  onClick={() => { setOriginPanelOpen(false); setPickingOrigin(true); }}
+                  data-testid="btn-pick-on-map"
+                  className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100 transition-colors">
+                  <MousePointer2 className="w-4 h-4 flex-shrink-0" />
+                  <span>{ar ? "تحديد على الخريطة" : "Pick on map"}</span>
+                </button>
+                <button
+                  onClick={() => {}}
+                  data-testid="btn-search-location"
+                  className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#0E4D41] bg-[#eaf6f2] text-[#0E4D41] font-bold text-xs hover:bg-[#d4ede6] transition-colors cursor-default">
+                  <Search className="w-4 h-4 flex-shrink-0" />
+                  <span>{ar ? "بحث بالاسم" : "Search by name"}</span>
+                </button>
+              </div>
+
+              {/* Search input */}
+              <div className="px-3 pb-1 relative">
+                <div className="relative">
+                  <Search className="absolute top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+                    style={{ [isRTL ? "right" : "left"]: "10px" }} />
+                  <input
+                    type="text"
+                    autoFocus
+                    data-testid="input-origin-search"
+                    value={originSearchQ}
+                    onChange={e => handleOriginSearchInput(e.target.value)}
+                    placeholder={ar ? "ابحث عن موقع… (مثال: مسجد الحرام، منى)" : "Search location… (e.g. Masjid al-Haram, Mina)"}
+                    className="w-full rounded-xl border border-border bg-background text-sm px-9 py-2.5 outline-none focus:border-[#0E4D41] transition-colors"
+                    style={{ direction: isRTL ? "rtl" : "ltr", paddingInlineStart: "2.25rem", paddingInlineEnd: "0.75rem" }}
+                  />
+                  {originSearchLoading && (
+                    <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-[#0E4D41] border-t-transparent rounded-full animate-spin"
+                      style={{ [isRTL ? "left" : "right"]: "10px" }} />
+                  )}
+                </div>
+              </div>
+
+              {/* Results */}
+              {originSearchResults.length > 0 && (
+                <div className="mx-3 mb-2 rounded-xl border border-border overflow-hidden shadow-sm">
+                  {originSearchResults.map((r, i) => (
+                    <button key={i}
+                      onClick={() => pickOriginFromSearch(r.lat, r.lon, r.display_name)}
+                      className="w-full px-3 py-2.5 flex items-start gap-2 text-left border-b border-border/50 last:border-0 hover:bg-[#eaf6f2] transition-colors"
+                      style={{ direction: isRTL ? "rtl" : "ltr" }}>
+                      <MapPin className="w-3.5 h-3.5 text-[#0E4D41] flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-foreground leading-snug line-clamp-2">{r.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {originSearchQ.length > 1 && !originSearchLoading && originSearchResults.length === 0 && (
+                <div className="px-3 pb-2 text-xs text-muted-foreground text-center">
+                  {ar ? "لم يُعثر على نتائج. جرّب كلمة أخرى." : "No results found. Try another keyword."}
+                </div>
+              )}
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {customOrigin && !pickingOrigin && (
-            <button onClick={resetToGps} data-testid="btn-reset-origin"
-              className="text-[11px] px-2 py-1 rounded-lg border border-[#a8d4cb] text-[#0E4D41] bg-[#eaf6f2] font-bold hover:bg-[#d4ede6] transition-colors flex items-center gap-1">
-              <LocateFixed className="w-3 h-3" />
-              {ar ? "رجوع لموقعي" : "My location"}
-            </button>
-          )}
-          {pickingOrigin ? (
-            <button onClick={() => setPickingOrigin(false)} data-testid="btn-cancel-pick"
-              className="text-[11px] px-2 py-1 rounded-lg border border-blue-300 text-blue-700 bg-white font-bold hover:bg-blue-50 transition-colors">
-              {ar ? "إلغاء" : "Cancel"}
-            </button>
-          ) : (
-            <button onClick={() => setPickingOrigin(true)} data-testid="btn-pick-origin"
-              className="text-[11px] px-2 py-1 rounded-lg border border-border text-foreground font-semibold hover:border-[#0E4D41] hover:text-[#0E4D41] transition-colors flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {ar ? "تغيير نقطة البداية" : "Change start"}
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Filter bar — hide during nav */}
       {!navRoute && (
