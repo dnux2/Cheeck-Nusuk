@@ -157,11 +157,20 @@ export function PilgrimHomePage() {
     // Reverse geocode city name — Nominatim (free)
     try {
       const gRes = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=${lang}`
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=${lang}`,
+        { headers: { "Accept-Language": lang === "ar" ? "ar,en" : "en,ar" } }
       );
       const gJson = await gRes.json();
       const city =
-        gJson.address?.city || gJson.address?.town || gJson.address?.village || gJson.address?.county || "";
+        gJson.address?.city ||
+        gJson.address?.town ||
+        gJson.address?.municipality ||
+        gJson.address?.village ||
+        gJson.address?.county ||
+        gJson.address?.state_district ||
+        gJson.address?.state ||
+        gJson.display_name?.split(",")[0] ||
+        "";
       setCityName(city);
     } catch { /* keep null */ }
   }, [ar, lang]);
@@ -708,26 +717,31 @@ export function PilgrimHomePage() {
           className="bg-gradient-to-b from-[#f5e6c8] to-white dark:from-[#3a2a12] dark:to-card border border-[#e8d4a0] dark:border-border rounded-3xl overflow-hidden"
         >
           <div className={`px-5 py-4 border-b border-[#e8d4a0] dark:border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <Clock className="w-4 h-4 text-accent" />
-              <span className="font-bold text-sm text-foreground">
-                {ar
-                  ? `مواقيت الصلاة${cityName ? ` — ${cityName}` : " — مكة المكرمة"}`
-                  : `Prayer Times${cityName ? ` — ${cityName}` : " — Makkah"}`}
+            <div className={`flex items-center gap-2 min-w-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <Clock className="w-4 h-4 text-accent flex-shrink-0" />
+              <span className="font-bold text-sm text-foreground truncate">
+                {(() => {
+                  const base = ar ? "مواقيت الصلاة" : "Prayer Times";
+                  if (cityName) return `${base} — ${cityName}`;
+                  if (geoStatus === "denied") return ar ? `${base} — مكة المكرمة` : `${base} — Makkah`;
+                  return base;
+                })()}
               </span>
             </div>
-            {geoStatus === "requesting" && (
-              <Loader2 className="w-4 h-4 animate-spin text-accent" />
-            )}
-            {geoStatus === "granted" && (
-              <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
-                <LocateFixed className="w-3 h-3" />
-                {ar ? "موقعك الحالي" : "Your location"}
-              </span>
-            )}
-            {geoStatus === "denied" && !cityName && (
-              <span className="text-[10px] text-muted-foreground">{ar ? "مكة الافتراضي" : "Makkah default"}</span>
-            )}
+            <div className="flex-shrink-0 ms-2">
+              {geoStatus === "requesting" && (
+                <Loader2 className="w-4 h-4 animate-spin text-accent" />
+              )}
+              {(geoStatus === "granted" || (geoStatus === "denied" && cityName)) && (
+                <span className="text-[10px] text-primary font-semibold flex items-center gap-1 whitespace-nowrap">
+                  <LocateFixed className="w-3 h-3" />
+                  {ar ? "موقعك الحالي" : "Your location"}
+                </span>
+              )}
+              {geoStatus === "denied" && !cityName && (
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">{ar ? "مكة الافتراضي" : "Makkah default"}</span>
+              )}
+            </div>
           </div>
           <div className="flex divide-x divide-[#e8d4a0] dark:divide-border rtl:divide-x-reverse">
             {(prayers ?? PRAYER_TIMES.map(p => ({ nameAr: p.ar, nameEn: p.en, time: p.time, isNext: p.ar === "العشاء" }))).map((p) => (
