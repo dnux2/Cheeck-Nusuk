@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -6,8 +6,8 @@ import { useLanguage } from "@/contexts/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { type Pilgrim } from "@shared/schema";
+import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw } from "lucide-react";
 
-// Fix Leaflet default icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -18,46 +18,37 @@ L.Icon.Default.mergeOptions({
 type FacilityType = "hospital" | "water" | "mosque" | "bathroom" | "transport";
 
 interface Facility {
-  id: string;
-  type: FacilityType;
-  nameAr: string;
-  nameEn: string;
-  lat: number;
-  lng: number;
-  detailAr?: string;
-  detailEn?: string;
+  id: string; type: FacilityType;
+  nameAr: string; nameEn: string;
+  lat: number; lng: number;
+  detailAr?: string; detailEn?: string;
 }
 
 const FACILITIES: Facility[] = [
-  // Hospitals
   { id: "h1", type: "hospital", nameAr: "مستشفى الملك عبدالله",    nameEn: "King Abdullah Medical",    lat: 21.4180, lng: 39.8220, detailAr: "طوارئ ٢٤ ساعة",          detailEn: "24h Emergency" },
   { id: "h2", type: "hospital", nameAr: "مستشفى أجياد الطوارئ",    nameEn: "Ajyad Emergency Hospital", lat: 21.4195, lng: 39.8295, detailAr: "الحرم المكي",             detailEn: "Near Grand Mosque" },
   { id: "h3", type: "hospital", nameAr: "مستشفى النور التخصصي",    nameEn: "Al-Nour Specialist",       lat: 21.3990, lng: 39.8580, detailAr: "أمراض الحج",             detailEn: "Hajj Diseases" },
   { id: "h4", type: "hospital", nameAr: "مركز صحة منى",            nameEn: "Mina Health Center",       lat: 21.4120, lng: 39.8960, detailAr: "خدمات طبية شاملة",       detailEn: "Full medical services" },
   { id: "h5", type: "hospital", nameAr: "إسعاف مزدلفة",            nameEn: "Muzdalifah First Aid",     lat: 21.3820, lng: 39.9320, detailAr: "إسعاف ميداني",           detailEn: "Field first aid" },
-  // Water
-  { id: "w1", type: "water", nameAr: "زمزم — المسجد الحرام",       nameEn: "Zamzam — Grand Mosque",    lat: 21.4225, lng: 39.8262, detailAr: "أصل بئر زمزم المباركة", detailEn: "Source of Zamzam well" },
-  { id: "w2", type: "water", nameAr: "محطة مياه منى ١",            nameEn: "Mina Water Station 1",     lat: 21.4140, lng: 39.8890, detailAr: "مياه معبأة مجاناً",       detailEn: "Free bottled water" },
-  { id: "w3", type: "water", nameAr: "محطة مياه منى ٢",            nameEn: "Mina Water Station 2",     lat: 21.4100, lng: 39.8950, detailAr: "مياه معبأة مجاناً",       detailEn: "Free bottled water" },
-  { id: "w4", type: "water", nameAr: "محطة مياه عرفات",            nameEn: "Arafat Water Station",     lat: 21.3550, lng: 39.9810, detailAr: "مياه زمزم وعادية",       detailEn: "Zamzam & regular water" },
-  { id: "w5", type: "water", nameAr: "محطة مياه مزدلفة",           nameEn: "Muzdalifah Water",         lat: 21.3820, lng: 39.9340, detailAr: "مياه متاحة الليل",       detailEn: "Available all night" },
-  { id: "w6", type: "water", nameAr: "نقطة مياه الجمرات",          nameEn: "Jamarat Water Point",      lat: 21.4050, lng: 39.8730, detailAr: "قريبة من رمي الجمار",    detailEn: "Near Jamarat area" },
-  // Mosques
-  { id: "m1", type: "mosque", nameAr: "المسجد الحرام",             nameEn: "Grand Mosque",             lat: 21.4225, lng: 39.8262, detailAr: "قبلة المسلمين",          detailEn: "Muslim Qibla" },
-  { id: "m2", type: "mosque", nameAr: "مسجد نمرة — عرفات",         nameEn: "Nimrah Mosque — Arafat",   lat: 21.3549, lng: 39.9850, detailAr: "خطبة عرفة والظهر",       detailEn: "Arafat sermon & Dhuhr" },
-  { id: "m3", type: "mosque", nameAr: "مسجد الخيف — منى",          nameEn: "Al-Khayf Mosque — Mina",   lat: 21.4115, lng: 39.8920, detailAr: "صلاة أيام التشريق",      detailEn: "Tashreeq days prayers" },
-  { id: "m4", type: "mosque", nameAr: "مسجد المشعر — مزدلفة",      nameEn: "Mash'ar Mosque",           lat: 21.3820, lng: 39.9330, detailAr: "الوقوف بالمشعر الحرام", detailEn: "Standing at Mash'ar" },
-  // Bathrooms
-  { id: "b1", type: "bathroom", nameAr: "دورات مياه — شمال الحرم", nameEn: "Restrooms — North Haram",  lat: 21.4240, lng: 39.8255, detailAr: "نظيفة ومتاحة ٢٤ ساعة", detailEn: "Clean, 24h available" },
-  { id: "b2", type: "bathroom", nameAr: "مرافق منى — المخيم أ",    nameEn: "Mina Facilities — Camp A", lat: 21.4130, lng: 39.8900, detailAr: "مع حمامات سباحة",        detailEn: "With shower facilities" },
-  { id: "b3", type: "bathroom", nameAr: "مرافق منى — المخيم ب",    nameEn: "Mina Facilities — Camp B", lat: 21.4090, lng: 39.8970, detailAr: "مع حمامات سباحة",        detailEn: "With shower facilities" },
-  { id: "b4", type: "bathroom", nameAr: "مرافق منطقة الجمرات",     nameEn: "Jamarat Restrooms",        lat: 21.4055, lng: 39.8720, detailAr: "قريبة من الجمرات",       detailEn: "Near Jamarat" },
-  { id: "b5", type: "bathroom", nameAr: "مرافق سهل عرفات",         nameEn: "Arafat Plain Restrooms",   lat: 21.3580, lng: 39.9840, detailAr: "موزعة على السهل",        detailEn: "Spread across plain" },
-  // Transport
-  { id: "t1", type: "transport", nameAr: "موقف حافلات الحرم",      nameEn: "Grand Mosque Bus Stop",    lat: 21.4200, lng: 39.8240, detailAr: "خطوط منى وعرفات",       detailEn: "Lines to Mina & Arafat" },
-  { id: "t2", type: "transport", nameAr: "محطة قطار الحرمين — منى", nameEn: "Haramain Train — Mina",    lat: 21.4080, lng: 39.8890, detailAr: "قطار سريع للحجاج",      detailEn: "Fast Hajj train" },
-  { id: "t3", type: "transport", nameAr: "محطة حافلات عرفات",      nameEn: "Arafat Bus Terminal",      lat: 21.3540, lng: 39.9830, detailAr: "العودة لمزدلفة ومنى",   detailEn: "Return to Muzdalifah & Mina" },
-  { id: "t4", type: "transport", nameAr: "موقف مزدلفة الليلي",     nameEn: "Muzdalifah Night Stop",    lat: 21.3800, lng: 39.9310, detailAr: "نقل ليلي لمنى",         detailEn: "Night transport to Mina" },
+  { id: "w1", type: "water",    nameAr: "زمزم — المسجد الحرام",    nameEn: "Zamzam — Grand Mosque",    lat: 21.4225, lng: 39.8262, detailAr: "أصل بئر زمزم المباركة", detailEn: "Source of Zamzam well" },
+  { id: "w2", type: "water",    nameAr: "محطة مياه منى ١",         nameEn: "Mina Water Station 1",     lat: 21.4140, lng: 39.8890, detailAr: "مياه معبأة مجاناً",       detailEn: "Free bottled water" },
+  { id: "w3", type: "water",    nameAr: "محطة مياه منى ٢",         nameEn: "Mina Water Station 2",     lat: 21.4100, lng: 39.8950, detailAr: "مياه معبأة مجاناً",       detailEn: "Free bottled water" },
+  { id: "w4", type: "water",    nameAr: "محطة مياه عرفات",         nameEn: "Arafat Water Station",     lat: 21.3550, lng: 39.9810, detailAr: "مياه زمزم وعادية",       detailEn: "Zamzam & regular water" },
+  { id: "w5", type: "water",    nameAr: "محطة مياه مزدلفة",        nameEn: "Muzdalifah Water",         lat: 21.3820, lng: 39.9340, detailAr: "مياه متاحة الليل",       detailEn: "Available all night" },
+  { id: "w6", type: "water",    nameAr: "نقطة مياه الجمرات",       nameEn: "Jamarat Water Point",      lat: 21.4050, lng: 39.8730, detailAr: "قريبة من رمي الجمار",    detailEn: "Near Jamarat area" },
+  { id: "m1", type: "mosque",   nameAr: "المسجد الحرام",           nameEn: "Grand Mosque",             lat: 21.4225, lng: 39.8262, detailAr: "قبلة المسلمين",          detailEn: "Muslim Qibla" },
+  { id: "m2", type: "mosque",   nameAr: "مسجد نمرة — عرفات",      nameEn: "Nimrah Mosque — Arafat",   lat: 21.3549, lng: 39.9850, detailAr: "خطبة عرفة والظهر",       detailEn: "Arafat sermon & Dhuhr" },
+  { id: "m3", type: "mosque",   nameAr: "مسجد الخيف — منى",       nameEn: "Al-Khayf Mosque — Mina",   lat: 21.4115, lng: 39.8920, detailAr: "صلاة أيام التشريق",      detailEn: "Tashreeq days prayers" },
+  { id: "m4", type: "mosque",   nameAr: "مسجد المشعر — مزدلفة",   nameEn: "Mash'ar Mosque",           lat: 21.3820, lng: 39.9330, detailAr: "الوقوف بالمشعر الحرام", detailEn: "Standing at Mash'ar" },
+  { id: "b1", type: "bathroom", nameAr: "دورات مياه — شمال الحرم",nameEn: "Restrooms — North Haram",  lat: 21.4240, lng: 39.8255, detailAr: "نظيفة ومتاحة ٢٤ ساعة", detailEn: "Clean, 24h available" },
+  { id: "b2", type: "bathroom", nameAr: "مرافق منى — المخيم أ",   nameEn: "Mina Facilities — Camp A", lat: 21.4130, lng: 39.8900, detailAr: "مع حمامات سباحة",        detailEn: "With shower facilities" },
+  { id: "b3", type: "bathroom", nameAr: "مرافق منى — المخيم ب",   nameEn: "Mina Facilities — Camp B", lat: 21.4090, lng: 39.8970, detailAr: "مع حمامات سباحة",        detailEn: "With shower facilities" },
+  { id: "b4", type: "bathroom", nameAr: "مرافق منطقة الجمرات",    nameEn: "Jamarat Restrooms",        lat: 21.4055, lng: 39.8720, detailAr: "قريبة من الجمرات",       detailEn: "Near Jamarat" },
+  { id: "b5", type: "bathroom", nameAr: "مرافق سهل عرفات",        nameEn: "Arafat Plain Restrooms",   lat: 21.3580, lng: 39.9840, detailAr: "موزعة على السهل",        detailEn: "Spread across plain" },
+  { id: "t1", type: "transport",nameAr: "موقف حافلات الحرم",      nameEn: "Grand Mosque Bus Stop",    lat: 21.4200, lng: 39.8240, detailAr: "خطوط منى وعرفات",       detailEn: "Lines to Mina & Arafat" },
+  { id: "t2", type: "transport",nameAr: "محطة قطار الحرمين — منى",nameEn: "Haramain Train — Mina",    lat: 21.4080, lng: 39.8890, detailAr: "قطار سريع للحجاج",      detailEn: "Fast Hajj train" },
+  { id: "t3", type: "transport",nameAr: "محطة حافلات عرفات",      nameEn: "Arafat Bus Terminal",      lat: 21.3540, lng: 39.9830, detailAr: "العودة لمزدلفة ومنى",   detailEn: "Return to Muzdalifah & Mina" },
+  { id: "t4", type: "transport",nameAr: "موقف مزدلفة الليلي",     nameEn: "Muzdalifah Night Stop",    lat: 21.3800, lng: 39.9310, detailAr: "نقل ليلي لمنى",         detailEn: "Night transport to Mina" },
 ];
 
 const TYPE_CONFIG: Record<FacilityType, { colorHex: string; lightHex: string; emoji: string; labelAr: string; labelEn: string }> = {
@@ -68,13 +59,27 @@ const TYPE_CONFIG: Record<FacilityType, { colorHex: string; lightHex: string; em
   transport: { colorHex: "#C49A3C", lightHex: "#f5ecd6", emoji: "🚌", labelAr: "النقل",        labelEn: "Transport" },
 };
 
-function makeFacilityIcon(type: FacilityType) {
+function makeFacilityIcon(type: FacilityType, highlighted = false) {
+  const cfg = TYPE_CONFIG[type];
+  const size = highlighted ? 40 : 34;
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;background:${highlighted ? cfg.colorHex : cfg.lightHex};border-radius:50%;border:${highlighted ? "3px" : "2.5px"} solid ${cfg.colorHex};display:flex;align-items:center;justify-content:center;font-size:${highlighted ? 17 : 15}px;box-shadow:0 2px 8px ${cfg.colorHex}${highlighted ? "88" : "44"}">${cfg.emoji}</div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+function makeDestIcon(type: FacilityType) {
   const cfg = TYPE_CONFIG[type];
   return L.divIcon({
-    html: `<div style="width:34px;height:34px;background:${cfg.lightHex};border-radius:50%;border:2.5px solid ${cfg.colorHex};display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px ${cfg.colorHex}44">${cfg.emoji}</div>`,
+    html: `<div style="display:flex;flex-direction:column;align-items:center">
+      <div style="width:42px;height:42px;background:${cfg.colorHex};border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 3px 12px ${cfg.colorHex}88">${cfg.emoji}</div>
+      <div style="width:3px;height:10px;background:${cfg.colorHex};margin-top:1px;border-radius:2px"></div>
+    </div>`,
     className: "",
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: [42, 53],
+    iconAnchor: [21, 53],
   });
 }
 
@@ -94,34 +99,88 @@ function makePilgrimIcon() {
 }
 
 function PilgrimDot({ lat, lng, ar }: { lat: number; lng: number; ar: boolean }) {
-  const map = useMap();
-  useEffect(() => { map.setView([lat, lng], map.getZoom()); }, [lat, lng]);
   return (
     <Marker position={[lat, lng]} icon={makePilgrimIcon()} zIndexOffset={1000}>
       <Popup maxWidth={180}>
         <div style={{ textAlign: "center", fontFamily: "inherit", padding: "4px 0" }}>
           <div style={{ fontSize: 20, marginBottom: 4 }}>📍</div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#0E4D41" }}>
-            {ar ? "أنت هنا" : "You are here"}
-          </div>
-          <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
-            {ar ? "موقعك الحالي" : "Your current location"}
-          </div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#0E4D41" }}>{ar ? "أنت هنا" : "You are here"}</div>
+          <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{ar ? "موقعك الحالي" : "Your current location"}</div>
         </div>
       </Popup>
     </Marker>
   );
 }
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371;
+function haversineM(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function fmtDist(m: number, ar: boolean) {
+  return m < 1000
+    ? ar ? `${Math.round(m)} م` : `${Math.round(m)} m`
+    : ar ? `${(m / 1000).toFixed(1)} كم` : `${(m / 1000).toFixed(1)} km`;
+}
+
+function fmtTime(secs: number, ar: boolean) {
+  if (secs < 60) return ar ? `أقل من دقيقة` : `< 1 min`;
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return ar ? `${mins} دقيقة` : `${mins} min`;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return ar ? `${h} س ${m} د` : `${h}h ${m}m`;
+}
+
+interface NavStep {
+  icon: string;
+  textAr: string;
+  textEn: string;
+  distanceM: number;
+  durationS: number;
+}
+
+interface NavRoute {
+  coords: [number, number][];
+  steps: NavStep[];
+  totalDistM: number;
+  totalDurationS: number;
+  destination: Facility;
+}
+
+function maneuverToStep(type: string, modifier: string | undefined, name: string): { icon: string; textAr: string; textEn: string } {
+  if (type === "depart") return { icon: "🚶", textAr: `ابدأ السير${name ? ` في ${name}` : ""}`, textEn: `Head ${name ? `along ${name}` : "out"}` };
+  if (type === "arrive") return { icon: "🏁", textAr: "وصلت إلى وجهتك", textEn: "You have arrived" };
+  const mod = modifier || "straight";
+  const map: Record<string, [string, string, string]> = {
+    "uturn":       ["↩️", "استدر للخلف", "Make a U-turn"],
+    "sharp right": ["↱",  "انعطف يميناً حاداً", "Turn sharp right"],
+    "right":       ["➡️", "انعطف يميناً", "Turn right"],
+    "slight right":["↗️", "انحرف يميناً قليلاً", "Keep slight right"],
+    "straight":    ["⬆️", "استمر للأمام", "Continue straight"],
+    "slight left": ["↖️", "انحرف يساراً قليلاً", "Keep slight left"],
+    "left":        ["⬅️", "انعطف يساراً", "Turn left"],
+    "sharp left":  ["↰",  "انعطف يساراً حاداً", "Turn sharp left"],
+  };
+  const [icon, ar, en] = map[mod] || ["⬆️", "استمر للأمام", "Continue"];
+  const streetAr = name ? ` في ${name}` : "";
+  const streetEn = name ? ` on ${name}` : "";
+  return { icon, textAr: ar + streetAr, textEn: en + streetEn };
+}
+
 type GpsStatus = "idle" | "requesting" | "granted" | "denied";
+
+function FitRoute({ coords }: { coords: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coords.length > 1) {
+      map.fitBounds(L.latLngBounds(coords), { padding: [40, 40], animate: true, duration: 1.2 });
+    }
+  }, [coords]);
+  return null;
+}
 
 function FlyToPos({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -141,15 +200,13 @@ export function PilgrimGuideMap() {
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle");
   const [gpsPos, setGpsPos] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [flyToGps, setFlyToGps] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
 
   const myLat = gpsPos?.lat ?? fallbackLat;
   const myLng = gpsPos?.lng ?? fallbackLng;
 
   const requestGps = () => {
-    if (!navigator.geolocation) {
-      setGpsStatus("denied");
-      return;
-    }
+    if (!navigator.geolocation) { setGpsStatus("denied"); return; }
     setGpsStatus("requesting");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -166,39 +223,123 @@ export function PilgrimGuideMap() {
     );
   };
 
-  useEffect(() => { requestGps(); }, []);
+  useEffect(() => { requestGps(); return () => { if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current); }; }, []);
 
   const [activeFilters, setActiveFilters] = useState<Set<FacilityType>>(new Set(["hospital", "water", "mosque", "bathroom", "transport"]));
-  const [routeLine, setRouteLine] = useState<[number, number][] | null>(null);
-  const [routeInfo, setRouteInfo] = useState<{ name: string; km: number } | null>(null);
+  const toggleFilter = (type: FacilityType) => setActiveFilters(prev => { const n = new Set(prev); n.has(type) ? n.delete(type) : n.add(type); return n; });
 
-  const toggleFilter = (type: FacilityType) => {
-    setActiveFilters(prev => {
-      const next = new Set(prev);
-      if (next.has(type)) { next.delete(type); } else { next.add(type); }
-      return next;
-    });
+  const [navRoute, setNavRoute] = useState<NavRoute | null>(null);
+  const [navLoading, setNavLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [remainingM, setRemainingM] = useState(0);
+  const [remainingS, setRemainingS] = useState(0);
+  const [stepsOpen, setStepsOpen] = useState(false);
+
+  const stopNav = () => {
+    setNavRoute(null);
+    setCurrentStep(0);
+    if (watchIdRef.current) { navigator.geolocation.clearWatch(watchIdRef.current); watchIdRef.current = null; }
   };
 
-  const handleNavigate = (facility: Facility) => {
-    const km = haversineKm(myLat, myLng, facility.lat, facility.lng);
-    const mins = Math.round((km / 5) * 60);
-    setRouteLine([[myLat, myLng], [facility.lat, facility.lng]]);
-    setRouteInfo({ name: ar ? facility.nameAr : facility.nameEn, km });
-    toast({
-      title: ar ? `🗺️ توجيه إلى: ${facility.nameAr}` : `🗺️ Navigating to: ${facility.nameEn}`,
-      description: ar
-        ? `المسافة: ${km < 1 ? `${Math.round(km * 1000)} م` : `${km.toFixed(1)} كم`} · حوالي ${mins} دقيقة سيراً`
-        : `Distance: ${km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`} · ~${mins} min walk`,
-    });
+  const startLiveTracking = (route: NavRoute) => {
+    if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
+    if (!navigator.geolocation) return;
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        setGpsPos({ lat, lng, accuracy: pos.coords.accuracy });
+        const distToDest = haversineM(lat, lng, route.destination.lat, route.destination.lng);
+        setRemainingM(distToDest);
+        const ratio = Math.max(0, distToDest / route.totalDistM);
+        setRemainingS(Math.round(route.totalDurationS * ratio));
+        if (route.steps.length > 0) {
+          let stepIdx = 0;
+          let cumDist = 0;
+          const traveled = route.totalDistM - distToDest;
+          for (let i = 0; i < route.steps.length; i++) {
+            cumDist += route.steps[i].distanceM;
+            if (traveled < cumDist) { stepIdx = i; break; }
+            stepIdx = i;
+          }
+          setCurrentStep(Math.min(stepIdx, route.steps.length - 1));
+        }
+        if (distToDest < 25) {
+          toast({ title: ar ? "🏁 وصلت إلى وجهتك!" : "🏁 You have arrived!" });
+          stopNav();
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, distanceFilter: 5 }
+    );
+  };
+
+  const handleNavigate = async (facility: Facility) => {
+    setNavLoading(true);
+    try {
+      const url = `https://router.project-osrm.org/route/v1/foot/${myLng},${myLat};${facility.lng},${facility.lat}?overview=full&geometries=geojson&steps=true`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.code !== "Ok" || !data.routes?.[0]) throw new Error("No route");
+
+      const route = data.routes[0];
+      const coords: [number, number][] = route.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
+
+      const steps: NavStep[] = [];
+      for (const leg of route.legs) {
+        for (const step of leg.steps) {
+          const m = step.maneuver;
+          const { icon, textAr, textEn } = maneuverToStep(m.type, m.modifier, step.name || "");
+          steps.push({ icon, textAr, textEn, distanceM: step.distance, durationS: step.duration });
+        }
+      }
+
+      const navData: NavRoute = {
+        coords, steps,
+        totalDistM: route.distance,
+        totalDurationS: route.duration,
+        destination: facility,
+      };
+
+      setNavRoute(navData);
+      setCurrentStep(0);
+      setRemainingM(route.distance);
+      setRemainingS(route.duration);
+      setStepsOpen(false);
+
+      if (gpsStatus === "granted") startLiveTracking(navData);
+
+      toast({
+        title: ar ? `🗺️ بدأ التوجيه إلى: ${facility.nameAr}` : `🗺️ Navigation started: ${facility.nameEn}`,
+        description: ar
+          ? `${fmtDist(route.distance, true)} · ${fmtTime(route.duration, true)} سيراً`
+          : `${fmtDist(route.distance, false)} · ${fmtTime(route.duration, false)} walking`,
+      });
+    } catch {
+      const distM = haversineM(myLat, myLng, facility.lat, facility.lng);
+      const durationS = (distM / 1.2);
+      setNavRoute({
+        coords: [[myLat, myLng], [facility.lat, facility.lng]],
+        steps: [
+          { icon: "🚶", textAr: `توجه نحو ${facility.nameAr}`, textEn: `Head toward ${facility.nameEn}`, distanceM: distM, durationS },
+          { icon: "🏁", textAr: "وصلت إلى وجهتك", textEn: "You have arrived", distanceM: 0, durationS: 0 },
+        ],
+        totalDistM: distM, totalDurationS: durationS, destination: facility,
+      });
+      setRemainingM(distM);
+      setRemainingS(durationS);
+      toast({ title: ar ? "⚠️ خريطة مباشرة — تحقق من الإنترنت" : "⚠️ Direct route — check internet", variant: "destructive" });
+    } finally {
+      setNavLoading(false);
+    }
   };
 
   const visibleFacilities = FACILITIES.filter(f => activeFilters.has(f.type));
+  const destFacility = navRoute?.destination;
 
   return (
     <div className="flex flex-col h-full" style={{ direction: isRTL ? "rtl" : "ltr" }}>
 
-      {/* GPS status banner */}
       {gpsStatus === "requesting" && (
         <div className="px-4 py-2 text-xs flex items-center gap-2 border-b border-[#a8d4cb]" style={{ background: "#d4ede6", color: "#0E4D41" }}>
           <span className="animate-pulse">📡</span>
@@ -207,115 +348,159 @@ export function PilgrimGuideMap() {
       )}
       {gpsStatus === "denied" && (
         <div className="px-4 py-2 text-xs flex items-center justify-between gap-2 border-b border-orange-200 bg-orange-50">
-          <span className="text-orange-700 font-semibold">
-            {ar ? "⚠️ لم يُسمح بالوصول للموقع — يُعرض موقع افتراضي" : "⚠️ Location denied — showing default position"}
-          </span>
-          <button onClick={requestGps} className="text-[#0E4D41] font-bold underline text-[11px]">
-            {ar ? "إعادة المحاولة" : "Retry"}
-          </button>
+          <span className="text-orange-700 font-semibold">{ar ? "⚠️ لم يُسمح بالوصول للموقع — يُعرض موقع افتراضي" : "⚠️ Location denied — showing default position"}</span>
+          <button onClick={requestGps} className="text-[#0E4D41] font-bold underline text-[11px]">{ar ? "إعادة المحاولة" : "Retry"}</button>
         </div>
       )}
-      {gpsStatus === "granted" && gpsPos && (
+      {gpsStatus === "granted" && gpsPos && !navRoute && (
         <div className="px-4 py-2 text-xs flex items-center justify-between border-b border-[#a8d4cb]" style={{ background: "#d4ede6", color: "#0E4D41" }}>
-          <span className="font-semibold">
-            📍 {ar ? `موقعك الحقيقي · دقة ${Math.round(gpsPos.accuracy)} م` : `Real location · ±${Math.round(gpsPos.accuracy)} m accuracy`}
-          </span>
-          <button onClick={requestGps} className="opacity-60 hover:opacity-100 font-bold text-[11px]">
-            {ar ? "تحديث" : "Refresh"}
+          <span className="font-semibold">📍 {ar ? `موقعك الحقيقي · دقة ${Math.round(gpsPos.accuracy)} م` : `Real location · ±${Math.round(gpsPos.accuracy)} m`}</span>
+          <button onClick={requestGps} className="opacity-60 hover:opacity-100 font-bold text-[11px] flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" />{ar ? "تحديث" : "Refresh"}
           </button>
         </div>
       )}
 
-      {/* Filter bar */}
-      <div className="px-4 py-3 bg-card border-b border-border overflow-x-auto">
-        <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`} style={{ minWidth: "max-content" }}>
-          {(Object.entries(TYPE_CONFIG) as [FacilityType, typeof TYPE_CONFIG[FacilityType]][]).map(([type, cfg]) => {
-            const active = activeFilters.has(type);
-            return (
-              <button
-                key={type}
-                onClick={() => toggleFilter(type)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${active ? "" : "bg-background border-border text-muted-foreground"}`}
-                style={active ? { background: cfg.lightHex, color: cfg.colorHex, borderColor: cfg.colorHex + "55" } : {}}
-                data-testid={`filter-${type}`}
-              >
-                <span>{cfg.emoji}</span>
-                <span>{ar ? cfg.labelAr : cfg.labelEn}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Route info banner */}
-      {routeInfo && (
-        <div className={`px-4 py-2 bg-primary text-primary-foreground text-xs flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-          <span className="font-bold">{ar ? `المسار إلى: ${routeInfo.name}` : `Route to: ${routeInfo.name}`}</span>
-          <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <span>{routeInfo.km < 1 ? `${Math.round(routeInfo.km * 1000)} م` : `${routeInfo.km.toFixed(1)} كم`}</span>
-            <button onClick={() => { setRouteLine(null); setRouteInfo(null); }} className="text-primary-foreground/70 hover:text-primary-foreground text-base leading-none">✕</button>
+      {/* Filter bar — hide during nav */}
+      {!navRoute && (
+        <div className="px-4 py-3 bg-card border-b border-border overflow-x-auto flex-shrink-0">
+          <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`} style={{ minWidth: "max-content" }}>
+            {(Object.entries(TYPE_CONFIG) as [FacilityType, typeof TYPE_CONFIG[FacilityType]][]).map(([type, cfg]) => {
+              const active = activeFilters.has(type);
+              return (
+                <button key={type} onClick={() => toggleFilter(type)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${active ? "" : "bg-background border-border text-muted-foreground"}`}
+                  style={active ? { background: cfg.lightHex, color: cfg.colorHex, borderColor: cfg.colorHex + "55" } : {}}
+                  data-testid={`filter-${type}`}>
+                  <span>{cfg.emoji}</span>
+                  <span>{ar ? cfg.labelAr : cfg.labelEn}</span>
+                </button>
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* Navigation HUD */}
+      {navRoute && (
+        <div className="flex-shrink-0 border-b border-[#a8d4cb]" style={{ background: "linear-gradient(160deg, #d4ede6 0%, #f0faf7 100%)" }}>
+          {/* Destination header */}
+          <div className="px-4 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0"
+                style={{ background: TYPE_CONFIG[navRoute.destination.type].lightHex, border: `2px solid ${TYPE_CONFIG[navRoute.destination.type].colorHex}` }}>
+                {TYPE_CONFIG[navRoute.destination.type].emoji}
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-[#0E4D41] text-sm truncate">{ar ? navRoute.destination.nameAr : navRoute.destination.nameEn}</div>
+                <div className="flex items-center gap-3 text-[11px] text-[#2d7a5f] mt-0.5">
+                  <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{fmtDist(remainingM, ar)}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{fmtTime(remainingS, ar)}</span>
+                </div>
+              </div>
+            </div>
+            <button onClick={stopNav} className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 hover:bg-red-50 transition-colors" style={{ border: "1.5px solid #e05555" }}>
+              <X className="w-4 h-4 text-red-500" />
+            </button>
+          </div>
+
+          {/* Current step */}
+          {navRoute.steps[currentStep] && (
+            <div className="px-4 pb-3">
+              <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "#0E4D41" }}>
+                <span className="text-2xl flex-shrink-0">{navRoute.steps[currentStep].icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-sm leading-tight">
+                    {ar ? navRoute.steps[currentStep].textAr : navRoute.steps[currentStep].textEn}
+                  </div>
+                  {navRoute.steps[currentStep].distanceM > 0 && (
+                    <div className="text-green-200 text-[11px] mt-0.5">{fmtDist(navRoute.steps[currentStep].distanceM, ar)}</div>
+                  )}
+                </div>
+                {navRoute.steps[currentStep + 1] && (
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-green-200 text-[10px] mb-0.5">{ar ? "بعدها" : "Then"}</div>
+                    <span className="text-lg">{navRoute.steps[currentStep + 1].icon}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Steps list toggle */}
+          <button
+            onClick={() => setStepsOpen(!stepsOpen)}
+            className="w-full px-4 py-2 flex items-center justify-between text-[11px] font-bold text-[#0E4D41] border-t border-[#a8d4cb] hover:bg-[#a8d4cb]/20 transition-colors"
+          >
+            <span className="flex items-center gap-1.5"><Navigation className="w-3 h-3" />{ar ? `${navRoute.steps.length} خطوات التوجيه` : `${navRoute.steps.length} navigation steps`}</span>
+            {stepsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {stepsOpen && (
+            <div className="max-h-44 overflow-y-auto border-t border-[#a8d4cb]">
+              {navRoute.steps.map((step, i) => (
+                <div key={i} className={`px-4 py-2.5 flex items-start gap-3 border-b border-[#a8d4cb]/40 text-xs transition-colors ${i === currentStep ? "bg-[#0E4D41]/8" : "bg-transparent"}`}>
+                  <span className="text-base flex-shrink-0 mt-0.5">{step.icon}</span>
+                  <div className="flex-1">
+                    <div className={`font-semibold ${i === currentStep ? "text-[#0E4D41]" : "text-[#2d7a5f]"}`}>{ar ? step.textAr : step.textEn}</div>
+                    {step.distanceM > 0 && <div className="text-[#5a9e80] mt-0.5">{fmtDist(step.distanceM, ar)}</div>}
+                  </div>
+                  {i === currentStep && <div className="w-2 h-2 rounded-full bg-[#0E4D41] flex-shrink-0 mt-1.5" />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Map */}
       <div className="flex-1" style={{ minHeight: 0 }}>
-        <MapContainer
-          center={[fallbackLat, fallbackLng]}
-          zoom={14}
-          style={{ width: "100%", height: "100%" }}
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='© <a href="https://carto.com">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          />
+        {navLoading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl px-6 py-4 shadow-xl flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-[#0E4D41] border-t-transparent rounded-full animate-spin" />
+              <span className="font-bold text-[#0E4D41] text-sm">{ar ? "جاري حساب المسار…" : "Calculating route…"}</span>
+            </div>
+          </div>
+        )}
+        <MapContainer center={[fallbackLat, fallbackLng]} zoom={14} style={{ width: "100%", height: "100%" }} zoomControl={false}>
+          <TileLayer attribution='© <a href="https://carto.com">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
 
-          {flyToGps && gpsPos && <FlyToPos lat={gpsPos.lat} lng={gpsPos.lng} />}
+          {flyToGps && !navRoute && gpsPos && <FlyToPos lat={gpsPos.lat} lng={gpsPos.lng} />}
+          {navRoute && <FitRoute coords={navRoute.coords} />}
 
-          {/* Pilgrim location — pulsing dot */}
           <PilgrimDot lat={myLat} lng={myLng} ar={ar} />
 
-          {/* Route line */}
-          {routeLine && (
-            <Polyline
-              positions={routeLine}
-              pathOptions={{ color: "#0E4D41", weight: 4, dashArray: "8,6", opacity: 0.85 }}
-            />
+          {navRoute && (
+            <>
+              <Polyline positions={navRoute.coords} pathOptions={{ color: "#1A5C8A", weight: 5, opacity: 0.9 }} />
+              <Polyline positions={navRoute.coords} pathOptions={{ color: "#ffffff", weight: 2, opacity: 0.5, dashArray: "1,10" }} />
+              <Marker position={[navRoute.destination.lat, navRoute.destination.lng]} icon={makeDestIcon(navRoute.destination.type)} zIndexOffset={900} />
+            </>
           )}
 
-          {/* Facility markers */}
-          {visibleFacilities.map(facility => {
-            const km = haversineKm(myLat, myLng, facility.lat, facility.lng);
-            const distLabel = km < 1 ? `${Math.round(km * 1000)} م` : `${km.toFixed(1)} كم`;
+          {!navRoute && visibleFacilities.map(facility => {
+            const distM = haversineM(myLat, myLng, facility.lat, facility.lng);
+            const distLabel = fmtDist(distM, ar);
             return (
-              <Marker
-                key={facility.id}
-                position={[facility.lat, facility.lng]}
-                icon={makeFacilityIcon(facility.type)}
-              >
-                <Popup maxWidth={200}>
-                  <div style={{ direction: isRTL ? "rtl" : "ltr", fontFamily: "inherit", minWidth: 160 }}>
+              <Marker key={facility.id} position={[facility.lat, facility.lng]} icon={makeFacilityIcon(facility.type)}>
+                <Popup maxWidth={210}>
+                  <div style={{ direction: isRTL ? "rtl" : "ltr", fontFamily: "inherit", minWidth: 170 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, color: TYPE_CONFIG[facility.type].colorHex }}>
                       {TYPE_CONFIG[facility.type].emoji} {ar ? facility.nameAr : facility.nameEn}
                     </div>
                     {(ar ? facility.detailAr : facility.detailEn) && (
-                      <div style={{ fontSize: 11, color: "#6B4F35", marginBottom: 6 }}>
-                        {ar ? facility.detailAr : facility.detailEn}
-                      </div>
+                      <div style={{ fontSize: 11, color: "#6B4F35", marginBottom: 4 }}>{ar ? facility.detailAr : facility.detailEn}</div>
                     )}
-                    <div style={{ fontSize: 11, color: "#8B6E4E", marginBottom: 8 }}>
-                      📍 {ar ? `المسافة: ${distLabel}` : `Distance: ${distLabel}`}
+                    <div style={{ fontSize: 11, color: "#8B6E4E", marginBottom: 10, display: "flex", gap: 10 }}>
+                      <span>📍 {distLabel}</span>
+                      <span>🕐 {fmtTime(distM / 1.2, ar)}</span>
                     </div>
                     <button
                       onClick={() => handleNavigate(facility)}
-                      style={{
-                        display: "block", width: "100%", padding: "6px 12px",
-                        background: "#0E4D41", color: "#fff", borderRadius: 8,
-                        fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer",
-                      }}
+                      style={{ display: "block", width: "100%", padding: "7px 12px", background: "#0E4D41", color: "#fff", borderRadius: 10, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}
                     >
-                      {ar ? "🗺️ توجيهني" : "🗺️ Navigate"}
+                      🗺️ {ar ? "وجّهني الآن" : "Navigate Now"}
                     </button>
                   </div>
                 </Popup>
