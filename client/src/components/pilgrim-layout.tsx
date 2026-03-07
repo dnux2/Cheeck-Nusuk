@@ -36,7 +36,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-full bg-card">
       {/* Logo */}
       <div className="py-4 px-4 border-b border-border flex items-center justify-center">
-        <Link href="/" className="flex items-center gap-2.5 group" data-testid="link-home-pilgrim">
+        <Link href="/" className="flex flex-row items-center gap-2.5 group" dir="ltr" data-testid="link-home-pilgrim">
           <div className="w-9 h-9 rounded-xl overflow-hidden bg-[#f5e6c8] flex-shrink-0 shadow-sm">
             <img src={logoImg} alt="CheckNusuk" className="w-full h-full object-contain" />
           </div>
