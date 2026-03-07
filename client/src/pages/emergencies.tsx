@@ -42,6 +42,8 @@ const TYPE_LABEL: Record<string, { ar: string; en: string; color: string }> = {
   Security: { ar: "تهديد أمني",   en: "Security",       color: "bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
 };
 
+type FilterType = "all" | "active" | "resolved";
+
 export function EmergenciesPage() {
   const { data: emergencies } = useEmergencies();
   const { data: pilgrims } = usePilgrims();
@@ -49,6 +51,7 @@ export function EmergenciesPage() {
   const { t, isRTL, lang } = useLanguage();
   const ar = lang === "ar";
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<FilterType>("all");
   const [, navigate] = useLocation();
   const prevCountRef = useRef<number>(0);
 
@@ -65,10 +68,28 @@ export function EmergenciesPage() {
     (pilgrims ?? []).map(p => [p.id, p])
   );
 
+  // Sort newest first, then filter
+  const sorted = [...(emergencies ?? [])].sort(
+    (a, b) => new Date(b.timestamp ?? 0).getTime() - new Date(a.timestamp ?? 0).getTime()
+  );
+  const filtered = filter === "active"
+    ? sorted.filter(e => e.status === "Active")
+    : filter === "resolved"
+    ? sorted.filter(e => e.status === "Resolved")
+    : sorted;
+
+  const resolvedCount = (emergencies ?? []).filter(e => e.status === "Resolved").length;
+
+  const FILTERS: { key: FilterType; ar: string; en: string; count: number }[] = [
+    { key: "all",      ar: "الكل",     en: "All",      count: (emergencies ?? []).length },
+    { key: "active",   ar: "النشطة",   en: "Active",   count: activeCount },
+    { key: "resolved", ar: "المغلقة",  en: "Resolved", count: resolvedCount },
+  ];
+
   return (
     <div className="p-6 md:p-8 max-w-[1200px] mx-auto" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
+      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
         <div className={isRTL ? "text-right" : ""}>
           <h1 className="text-3xl font-display font-bold text-foreground">{t("emergencyResponseTitle")}</h1>
           <p className="text-muted-foreground mt-1">{t("emergencyResponseDesc")}</p>
@@ -92,18 +113,50 @@ export function EmergenciesPage() {
         </div>
       </div>
 
+      {/* Filter tabs */}
+      <div className={`flex items-center gap-2 mb-6 flex-wrap ${isRTL ? "flex-row-reverse" : ""}`}>
+        {FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            data-testid={`filter-${f.key}`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
+              filter === f.key
+                ? f.key === "active"
+                  ? "bg-destructive text-white border-destructive shadow-sm"
+                  : f.key === "resolved"
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                  : "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-secondary text-secondary-foreground border-border hover:border-primary/30"
+            }`}
+          >
+            {ar ? f.ar : f.en}
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none ${
+              filter === f.key ? "bg-white/20" : "bg-border text-muted-foreground"
+            }`}>
+              {f.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Emergency Cards */}
-      <h2 className={`text-2xl font-display font-bold mb-6 ${isRTL ? "text-right" : ""}`}>{t("activeEmergenciesTitle")}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {(!emergencies || emergencies.length === 0) && (
+        {filtered.length === 0 && (
           <div className="col-span-full p-16 text-center bg-card rounded-2xl border border-border">
             <CheckCircle className="w-14 h-14 text-emerald-500 mx-auto mb-4" />
-            <p className="text-lg font-semibold text-foreground mb-1">{ar ? "لا توجد حالات طوارئ" : t("noActiveEmergencies")}</p>
+            <p className="text-lg font-semibold text-foreground mb-1">
+              {filter === "active"
+                ? (ar ? "لا توجد حالات نشطة" : "No active emergencies")
+                : filter === "resolved"
+                ? (ar ? "لا توجد حالات مغلقة" : "No resolved emergencies")
+                : (ar ? "لا توجد حالات طوارئ" : t("noActiveEmergencies"))}
+            </p>
             <p className="text-sm text-muted-foreground">{ar ? "النظام يعمل بشكل طبيعي" : "All systems normal"}</p>
           </div>
         )}
 
-        {emergencies?.map((em, i) => {
+        {filtered.map((em, i) => {
           const pilgrim = em.pilgrimId ? pilgrimMap.get(em.pilgrimId) : undefined;
           const typeInfo = TYPE_LABEL[em.type] ?? { ar: em.type, en: em.type, color: "bg-secondary text-foreground border-border" };
 
