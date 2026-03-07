@@ -20,6 +20,8 @@ export function useEmergencies() {
       const data = await res.json();
       return parseWithLogging(api.emergencies.list.responses[200], data, "emergencies.list");
     },
+    refetchInterval: 5000,
+    staleTime: 3000,
   });
 }
 

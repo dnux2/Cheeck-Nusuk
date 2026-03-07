@@ -3,14 +3,36 @@ import {
   Activity, Users, ShieldAlert, AlertTriangle,
   Map, Languages, Settings, Bell, Menu, X, Box, ChevronLeft, ChevronRight, MessageSquare, LogOut
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
+import { useEmergencies } from "@/hooks/use-emergencies";
+import { useToast } from "@/hooks/use-toast";
 import logoImg from "@assets/WhatsApp_Image_2026-03-07_at_12.53.20_AM_1772834050515.jpeg";
+
+function playAlertSound() {
+  try {
+    const ctx = new AudioContext();
+    const times = [0, 0.25, 0.5];
+    times.forEach(t => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime + t);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
+      osc.start(ctx.currentTime + t);
+      osc.stop(ctx.currentTime + t + 0.2);
+    });
+  } catch { /* AudioContext unavailable */ }
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { t, lang, setLang, isRTL } = useLanguage();
+  const { toast } = useToast();
 
   const isDesktop = () => typeof window !== "undefined" && window.innerWidth >= 768;
   const [sidebarOpen, setSidebarOpen] = useState(isDesktop());
@@ -26,15 +48,46 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const isSupervisor = location.startsWith("/dashboard") || location.startsWith("/pilgrims") ||
+    location.startsWith("/crowd") || location.startsWith("/security") ||
+    location.startsWith("/emergencies") || location.startsWith("/chat") ||
+    location.startsWith("/services") || location.startsWith("/translator");
+
+  const { data: emergencies } = useEmergencies();
+  const activeCount = emergencies?.filter(e => e.status === "Active").length ?? 0;
+  const prevCountRef = useRef<number | null>(null);
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!isSupervisor) return;
+    if (!initialized.current) {
+      prevCountRef.current = activeCount;
+      initialized.current = true;
+      return;
+    }
+    if (prevCountRef.current !== null && activeCount > prevCountRef.current) {
+      const newCount = activeCount - prevCountRef.current;
+      playAlertSound();
+      toast({
+        title: lang === "ar" ? `🚨 نداء طوارئ جديد` : `🚨 New Emergency Alert`,
+        description: lang === "ar"
+          ? `${newCount === 1 ? "حاجٌ" : `${newCount} حجاج`} أرسل${newCount === 1 ? "" : "وا"} نداء طوارئ — توجّه فوراً`
+          : `${newCount} new SOS ${newCount === 1 ? "signal" : "signals"} received — respond immediately`,
+        variant: "destructive",
+      });
+    }
+    prevCountRef.current = activeCount;
+  }, [activeCount, isSupervisor]);
+
   const NAV_ITEMS = [
-    { href: "/dashboard", label: t("dashboard"), icon: Activity },
-    { href: "/pilgrims", label: t("pilgrims"), icon: Users },
-    { href: "/crowd-management", label: t("crowdMonitoring"), icon: Map },
-    { href: "/security", label: t("securityAI"), icon: ShieldAlert },
-    { href: "/emergencies", label: t("emergency"), icon: AlertTriangle },
-    { href: "/chat", label: t("chat"), icon: MessageSquare },
-    { href: "/services", label: t("services"), icon: Box },
-    { href: "/translator", label: t("translator"), icon: Languages },
+    { href: "/dashboard", label: t("dashboard"), icon: Activity, badge: 0 },
+    { href: "/pilgrims", label: t("pilgrims"), icon: Users, badge: 0 },
+    { href: "/crowd-management", label: t("crowdMonitoring"), icon: Map, badge: 0 },
+    { href: "/security", label: t("securityAI"), icon: ShieldAlert, badge: 0 },
+    { href: "/emergencies", label: t("emergency"), icon: AlertTriangle, badge: activeCount },
+    { href: "/chat", label: t("chat"), icon: MessageSquare, badge: 0 },
+    { href: "/services", label: t("services"), icon: Box, badge: 0 },
+    { href: "/translator", label: t("translator"), icon: Languages, badge: 0 },
   ];
 
   if (location === "/" || location === "/pilgrim") return <>{children}</>;
@@ -112,8 +165,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "opacity-100" : "opacity-70"}`} />
-                  <span className="font-medium">{item.label}</span>
+                  <div className="relative flex-shrink-0">
+                    <Icon className={`w-5 h-5 ${isActive ? "opacity-100" : "opacity-70"}`} />
+                    {item.badge > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                        {item.badge > 99 ? "99+" : item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-medium flex-1">{item.label}</span>
+                  {item.badge > 0 && !isActive && (
+                    <span className="ms-auto text-[11px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
                 </div>
               </Link>
             );
@@ -200,10 +265,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Bell */}
-            <button className="relative p-1.5 rounded-lg hover:bg-secondary transition-colors flex-shrink-0">
-              <Bell className="w-4 h-4 text-muted-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
-            </button>
+            <Link href="/emergencies">
+              <button className="relative p-1.5 rounded-lg hover:bg-secondary transition-colors flex-shrink-0" data-testid="button-bell-emergencies">
+                <Bell className={`w-4 h-4 ${activeCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                {activeCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center leading-none animate-pulse">
+                    {activeCount > 9 ? "9+" : activeCount}
+                  </span>
+                )}
+              </button>
+            </Link>
 
             {/* Admin info + avatar */}
             {(() => {
