@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { RealMap, type NavRoute } from "@/components/real-map";
-import { AlertCircle, RefreshCw, Radio, Navigation, MapPin, Clock, ArrowLeft, ArrowRight, ArrowUp, CornerDownLeft, Footprints, X, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { RealMap, type NavRoute, type FacilityType, type Facility, FACILITIES, TYPE_CFG, SUPERVISOR_POS, haversineM, getFacilityCrowdScore, fetchOSRM } from "@/components/real-map";
+import { AlertCircle, RefreshCw, Radio, Navigation, MapPin, Clock, ArrowLeft, ArrowRight, ArrowUp, CornerDownLeft, Footprints, X, ChevronDown, ChevronUp, Sparkles, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePilgrims } from "@/hooks/use-pilgrims";
 import { useLanguage } from "@/contexts/language-context";
@@ -69,6 +69,36 @@ export function CrowdManagementPage() {
   const [navRoute, setNavRoute] = useState<NavRoute | null>(null);
   const [stepsExpanded, setStepsExpanded] = useState(false);
 
+  // Smart suggestion state
+  type SuggestResult = { facility: Facility; distM: number; crowdScore: number; score: number };
+  const [suggestType, setSuggestType] = useState<FacilityType | null>(null);
+  const [suggestResults, setSuggestResults] = useState<SuggestResult[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+
+  const handleSmartSuggest = useCallback((type: FacilityType) => {
+    const hour = new Date().getHours();
+    const results: SuggestResult[] = FACILITIES
+      .filter(f => f.type === type)
+      .map(f => {
+        const distM = haversineM(SUPERVISOR_POS.lat, SUPERVISOR_POS.lng, f.lat, f.lng);
+        const crowdScore = getFacilityCrowdScore(f.id, f.type, hour);
+        const score = distM * 0.6 + crowdScore * 30;
+        return { facility: f, distM, crowdScore, score };
+      })
+      .sort((a, b) => a.score - b.score);
+    setSuggestResults(results);
+    setSuggestType(type);
+  }, []);
+
+  const handleSuggestNavigate = useCallback(async (facility: Facility) => {
+    setSuggestType(null);
+    setSuggestLoading(true);
+    const cfg = TYPE_CFG[facility.type];
+    const route = await fetchOSRM(lang === "ar", SUPERVISOR_POS.lat, SUPERVISOR_POS.lng, facility.lat, facility.lng, lang === "ar" ? facility.nameAr : facility.nameEn, cfg.color);
+    setSuggestLoading(false);
+    if (route) { setNavRoute(route); setStepsExpanded(false); }
+  }, [lang]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSectors(prev => prev.map(s => {
@@ -129,6 +159,7 @@ export function CrowdManagementPage() {
               highlightedPilgrimId={highlightedPilgrimId}
               navRoute={navRoute}
               onNavRouteChange={(r) => { setNavRoute(r); if (r) setStepsExpanded(false); }}
+              onSmartSuggest={handleSmartSuggest}
             />
           </div>
 
@@ -210,6 +241,132 @@ export function CrowdManagementPage() {
                 </AnimatePresence>
               </motion.div>
             )}
+          </AnimatePresence>
+
+          {/* Smart suggestion loading indicator */}
+          <AnimatePresence>
+            {suggestLoading && (
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex-shrink-0 flex items-center justify-center gap-2 py-3 rounded-2xl bg-card border border-border shadow text-sm text-muted-foreground"
+                dir={isRTL ? "rtl" : "ltr"}
+              >
+                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                {ar ? "جاري حساب المسار…" : "Calculating route…"}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Smart suggestion panel — OUTSIDE map, fully visible */}
+          <AnimatePresence>
+            {suggestType && suggestResults.length > 0 && (() => {
+              const cfg = TYPE_CFG[suggestType];
+              return (
+                <motion.div
+                  key={`suggest-${suggestType}`}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 14 }}
+                  transition={{ type: "spring", damping: 22, stiffness: 280 }}
+                  className="flex-shrink-0 rounded-2xl border border-border shadow-xl overflow-hidden bg-card"
+                  dir={isRTL ? "rtl" : "ltr"}
+                  data-testid="panel-smart-suggest"
+                >
+                  {/* Header */}
+                  <div className={`flex items-center gap-3 px-4 py-3 border-b border-border`}
+                    style={{ background: cfg.bg + "cc" }}
+                    dir={isRTL ? "rtl" : "ltr"}
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                      style={{ background: cfg.bg, border: `2px solid ${cfg.color}` }}>
+                      {cfg.emoji}
+                    </div>
+                    <div className={`flex-1 min-w-0 ${isRTL ? "text-right" : ""}`}>
+                      <div className="font-bold text-sm" style={{ color: cfg.color }}>
+                        {ar ? `اقتراح ذكي · ${cfg.labelAr}` : `Smart Pick · ${cfg.labelEn}`}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {ar ? `${suggestResults.length} مرافق مرتّبة حسب المسافة والكثافة` : `${suggestResults.length} facilities ranked by distance & crowd`}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSuggestType(null)}
+                      className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0 text-muted-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Facility cards */}
+                  <div className="divide-y divide-border">
+                    {suggestResults.map((r, i) => {
+                      const crowdColor = r.crowdScore >= 70 ? "#C0392B" : r.crowdScore >= 45 ? "#B7860B" : "#0E6655";
+                      const crowdLabelAr = r.crowdScore >= 70 ? "مزدحم" : r.crowdScore >= 45 ? "متوسط" : "هادئ";
+                      const crowdLabelEn = r.crowdScore >= 70 ? "Busy" : r.crowdScore >= 45 ? "Moderate" : "Quiet";
+                      const isBest = i === 0;
+                      return (
+                        <div
+                          key={r.facility.id}
+                          className={`flex items-center gap-3 px-4 py-3 transition-colors ${isBest ? "bg-primary/5" : "bg-card"} ${isRTL ? "flex-row-reverse" : ""}`}
+                          data-testid={`suggest-item-${r.facility.id}`}
+                        >
+                          {/* Rank badge */}
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                            isBest ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                          }`}>
+                            {isBest ? "★" : i + 1}
+                          </div>
+
+                          {/* Info */}
+                          <div className={`flex-1 min-w-0 ${isRTL ? "text-right" : ""}`}>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm text-foreground truncate">
+                                {ar ? r.facility.nameAr : r.facility.nameEn}
+                              </span>
+                              {isBest && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground flex-shrink-0">
+                                  {ar ? "الأفضل" : "Best"}
+                                </span>
+                              )}
+                            </div>
+                            <div className={`flex items-center gap-3 mt-1 text-xs text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <span className={`flex items-center gap-1 font-semibold ${isRTL ? "flex-row-reverse" : ""}`}>
+                                <MapPin className="w-3 h-3 flex-shrink-0" />
+                                {fmtDist(r.distM, ar)}
+                              </span>
+                              <span
+                                className={`flex items-center gap-1 font-semibold ${isRTL ? "flex-row-reverse" : ""}`}
+                                style={{ color: crowdColor }}
+                              >
+                                <Users className="w-3 h-3 flex-shrink-0" />
+                                {ar ? crowdLabelAr : crowdLabelEn}
+                                <span className="text-[10px] opacity-70">({r.crowdScore}%)</span>
+                              </span>
+                            </div>
+                            {(r.facility.detailAr || r.facility.detailEn) && (
+                              <div className="text-[11px] text-muted-foreground/70 mt-0.5 truncate">
+                                {ar ? r.facility.detailAr : r.facility.detailEn}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Navigate button */}
+                          <button
+                            onClick={() => handleSuggestNavigate(r.facility)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-95 flex-shrink-0"
+                            style={{ background: cfg.color }}
+                            data-testid={`button-navigate-suggest-${r.facility.id}`}
+                          >
+                            <Navigation className="w-3.5 h-3.5 flex-shrink-0" />
+                            {ar ? "توجّه" : "Go"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              );
+            })()}
           </AnimatePresence>
 
           {/* Legend strip — outside the map so it never covers content */}

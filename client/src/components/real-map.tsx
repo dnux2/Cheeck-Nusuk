@@ -17,16 +17,16 @@ L.Icon.Default.mergeOptions({
 
 // ── Facility data (real, verified coordinates — Mecca) ──────────────────────
 
-type FacilityType = "hospital" | "water" | "mosque" | "bathroom" | "transport";
+export type FacilityType = "hospital" | "water" | "mosque" | "bathroom" | "transport";
 
-interface Facility {
+export interface Facility {
   id: string; type: FacilityType;
   nameAr: string; nameEn: string;
   lat: number; lng: number;
   detailAr?: string; detailEn?: string;
 }
 
-const FACILITIES: Facility[] = [
+export const FACILITIES: Facility[] = [
   { id: "h1", type: "hospital", nameAr: "مدينة الملك عبدالله الطبية",  nameEn: "King Abdullah Medical City",   lat: 21.38135, lng: 39.88109, detailAr: "١٥٥٠ سرير · تخصصات متعددة",    detailEn: "1550 beds · Multi-specialty" },
   { id: "h2", type: "hospital", nameAr: "مستشفى أجياد الطوارئ",       nameEn: "Ajyad Emergency Hospital",     lat: 21.41940, lng: 39.82726, detailAr: "طوارئ ٢٤ ساعة · قرب الحرم",    detailEn: "24h Emergency · Near Haram" },
   { id: "h3", type: "hospital", nameAr: "مستشفى النور التخصصي",       nameEn: "Al-Nour Specialist Hospital",  lat: 21.38487, lng: 39.86052, detailAr: "٥٠٠ سرير · أمراض الحج",         detailEn: "500 beds · Hajj diseases" },
@@ -53,13 +53,29 @@ const FACILITIES: Facility[] = [
   { id: "t4", type: "transport", nameAr: "موقف مزدلفة — نقل ليلي",   nameEn: "Muzdalifah Night Transport",  lat: 21.38500, lng: 39.93200, detailAr: "نقل ليلي إلى منى",           detailEn: "Night buses to Mina" },
 ];
 
-const TYPE_CFG: Record<FacilityType, { color: string; bg: string; emoji: string; labelAr: string; labelEn: string }> = {
+export const TYPE_CFG: Record<FacilityType, { color: string; bg: string; emoji: string; labelAr: string; labelEn: string }> = {
   hospital:  { color: "#B03A2E", bg: "#f5dedd", emoji: "🏥", labelAr: "المستشفيات",   labelEn: "Hospitals" },
   water:     { color: "#1A5C8A", bg: "#d6e9f5", emoji: "💧", labelAr: "نقاط المياه",  labelEn: "Water" },
   mosque:    { color: "#0E4D41", bg: "#d4ede6", emoji: "🕌", labelAr: "المساجد",      labelEn: "Mosques" },
   bathroom:  { color: "#7B5E3A", bg: "#ede5d8", emoji: "🚻", labelAr: "دورات المياه", labelEn: "Restrooms" },
   transport: { color: "#B7860B", bg: "#f5ecd6", emoji: "🚌", labelAr: "النقل",        labelEn: "Transport" },
 };
+
+// ── Exported helpers for smart suggestion ────────────────────────────────────
+export function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
+
+export function getFacilityCrowdScore(id: string, type: FacilityType, hour: number): number {
+  const seed = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 20;
+  const isPrayer = [4,5,12,13,15,16,18,19,20,21].includes(hour);
+  const base = type === "mosque" ? (isPrayer ? 85 : 30) : type === "transport" ? (hour < 6 || hour > 22 ? 20 : 60) : 40;
+  return Math.min(99, Math.max(5, base + seed + (isPrayer && type !== "mosque" ? 15 : 0)));
+}
 
 function makeFacilityIcon(type: FacilityType) {
   const cfg = TYPE_CFG[type];
@@ -100,7 +116,7 @@ const HAJJ_ZONES: Zone[] = [
   { id: "arafat", nameAr: "عَرَفات", nameEn: "Arafat", lat: 21.3547, lng: 39.9845, radius: 4000, pilgrimCount: 3000, capacity: 80000, status: "empty", sectorId: "S2", ritualAr: "الوقوف بعرفة", ritualEn: "Standing at Arafat", descAr: "ركن الحج الأعظم — يقف فيه الحجاج يوم عرفة دعاءً وتضرعاً", descEn: "The pinnacle of Hajj — pilgrims stand here in prayer on the Day of Arafat" },
 ];
 
-const SUPERVISOR_POS = { lat: 21.4195, lng: 39.8233 };
+export const SUPERVISOR_POS = { lat: 21.4195, lng: 39.8233 };
 
 function zoneColor(status: Zone["status"]) {
   switch (status) {
@@ -164,7 +180,7 @@ function formatManeuver(step: any, ar: boolean): string {
   return ar ? `استمر${on}` : `Continue${on}`;
 }
 
-async function fetchOSRM(ar: boolean, fromLat: number, fromLng: number, toLat: number, toLng: number, targetName: string, targetColor: string): Promise<NavRoute | null> {
+export async function fetchOSRM(ar: boolean, fromLat: number, fromLng: number, toLat: number, toLng: number, targetName: string, targetColor: string): Promise<NavRoute | null> {
   try {
     const url = `https://router.project-osrm.org/route/v1/foot/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true`;
     const res = await fetch(url);
@@ -346,9 +362,10 @@ interface RealMapProps {
   highlightedPilgrimId?: number;
   navRoute?: NavRoute | null;
   onNavRouteChange?: (r: NavRoute | null) => void;
+  onSmartSuggest?: (type: FacilityType) => void;
 }
 
-export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimId, navRoute = null, onNavRouteChange }: RealMapProps) {
+export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimId, navRoute = null, onNavRouteChange, onSmartSuggest }: RealMapProps) {
   const { lang, isRTL } = useLanguage();
   const ar = lang === "ar";
   const { toast } = useToast();
@@ -506,22 +523,35 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
               const active = activeTypes.has(type);
               const count = FACILITIES.filter(f => f.type === type).length;
               return (
-                <motion.button
-                  key={type}
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => toggleType(type)}
-                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all shadow-sm ${isRTL ? "flex-row-reverse" : ""}`}
-                  style={{
-                    background: active ? cfg.bg : "#f5f5f5",
-                    borderColor: active ? cfg.color : "#ddd",
-                    color: active ? cfg.color : "#999",
-                    opacity: active ? 1 : 0.6,
-                  }}
-                >
-                  <span>{cfg.emoji}</span>
-                  <span>{ar ? cfg.labelAr : cfg.labelEn}</span>
-                  <span className="text-[10px] opacity-60">({count})</span>
-                </motion.button>
+                <div key={type} className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => toggleType(type)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all shadow-sm ${isRTL ? "flex-row-reverse" : ""}`}
+                    style={{
+                      background: active ? cfg.bg : "#f5f5f5",
+                      borderColor: active ? cfg.color : "#ddd",
+                      color: active ? cfg.color : "#999",
+                      opacity: active ? 1 : 0.6,
+                    }}
+                  >
+                    <span>{cfg.emoji}</span>
+                    <span>{ar ? cfg.labelAr : cfg.labelEn}</span>
+                    <span className="text-[10px] opacity-60">({count})</span>
+                  </motion.button>
+                  {onSmartSuggest && (
+                    <motion.button
+                      whileTap={{ scale: 0.88 }}
+                      onClick={() => onSmartSuggest(type)}
+                      title={ar ? `اقترح أفضل ${cfg.labelAr}` : `Best ${cfg.labelEn}`}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-xs border shadow-sm transition-all"
+                      style={{ background: cfg.bg, borderColor: cfg.color, color: cfg.color }}
+                      data-testid={`button-suggest-${type}`}
+                    >
+                      ✨
+                    </motion.button>
+                  )}
+                </div>
               );
             })}
           </motion.div>
