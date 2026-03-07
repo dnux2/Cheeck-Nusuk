@@ -30,7 +30,7 @@ export function PilgrimsPage() {
     const found = pilgrims.find(p => p.id === Number(idParam));
     if (found) {
       setSelectedPilgrim(found);
-      const group = found.campaignGroup ?? "—";
+      const group = found.nationality || "—";
       setExpandedGroups(prev => new Set([...prev, group]));
     }
   }, [pilgrims, searchStr]);
@@ -51,12 +51,12 @@ export function PilgrimsPage() {
     return matchesSearch && matchesStatus;
   }), [pilgrims, search, statusFilter]);
 
-  // Build groups from filtered pilgrims
+  // Build groups from filtered pilgrims — grouped by nationality within the single campaign
   const groups = useMemo(() => {
     if (!filtered) return [];
     const map = new Map<string, Pilgrim[]>();
     for (const p of filtered) {
-      const key = p.campaignGroup ?? "—";
+      const key = p.nationality || "—";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     }
@@ -182,7 +182,7 @@ export function PilgrimsPage() {
         <div className={`px-4 py-2.5 bg-muted/30 border-b border-border flex items-center gap-4 text-sm text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
           <span className={`flex items-center gap-1.5 font-medium ${isRTL ? "flex-row-reverse" : ""}`}>
             <Users className="w-4 h-4" />
-            {totalFiltered} {ar ? "حاج" : "pilgrims"} · {groups.length} {ar ? "حملة" : "groups"}
+            {totalFiltered} {ar ? "حاج" : "pilgrims"} · {groups.length} {ar ? "جنسية" : "nationalities"}
           </span>
           {totalEmergency > 0 && (
             <span className={`flex items-center gap-1.5 text-destructive font-semibold ${isRTL ? "flex-row-reverse" : ""}`}>
