@@ -84,8 +84,8 @@ export function PilgrimWalletPage() {
 
         {/* Title */}
         <div className={isRTL ? "text-right" : ""}>
-          <h1 className="font-bold text-[#0E4D41] text-xl">{ar ? "المحفظة الرقمية" : "Digital Wallet"}</h1>
-          <p className="text-xs text-[#8B6E4E] mt-0.5">{ar ? "تصريحك وبياناتك الصحية في مكان واحد" : "Your permit and health data in one place"}</p>
+          <h1 className="font-bold text-primary text-xl">{ar ? "المحفظة الرقمية" : "Digital Wallet"}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{ar ? "تصريحك وبياناتك الصحية في مكان واحد" : "Your permit and health data in one place"}</p>
         </div>
 
         {/* Permit Card */}
@@ -100,7 +100,7 @@ export function PilgrimWalletPage() {
                 <div className="text-xs text-white/70 mb-1 font-medium">{ar ? "تصريح الحج الرسمي" : "Official Hajj Permit"}</div>
                 <div className="text-lg font-bold text-white">{isLoading ? "..." : pilgrim?.name}</div>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-card/15 flex items-center justify-center">
                 <Shield className="w-6 h-6 text-white" />
               </div>
             </div>
@@ -150,16 +150,16 @@ export function PilgrimWalletPage() {
         {/* Health Card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-          className="rounded-3xl bg-white border border-[#E8DDD0] shadow-sm overflow-hidden"
+          className="rounded-3xl bg-card border border-border shadow-sm overflow-hidden"
         >
-          <div className={`px-5 py-4 border-b border-[#F0E8DC] flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`px-5 py-4 border-b border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
               <Heart className="w-4 h-4 text-red-500" />
-              <span className="font-bold text-sm text-[#3D2B1F]">{ar ? "البيانات الصحية" : "Health Data"}</span>
+              <span className="font-bold text-sm text-foreground">{ar ? "البيانات الصحية" : "Health Data"}</span>
             </div>
             <button
               onClick={handleEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F0E8DC] hover:bg-[#E8DDD0] text-[#0E4D41] text-xs font-bold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-primary text-xs font-bold transition-colors"
               data-testid="btn-edit-health"
             >
               <Edit3 className="w-3.5 h-3.5" />
@@ -168,20 +168,20 @@ export function PilgrimWalletPage() {
           </div>
           <div className="px-5 py-4 grid grid-cols-2 gap-4">
             <div className={isRTL ? "text-right" : ""}>
-              <div className="text-xs text-[#8B6E4E] mb-1">{ar ? "فصيلة الدم" : "Blood Type"}</div>
-              <div className="font-bold text-[#3D2B1F] text-sm">{pilgrim?.bloodType || (ar ? "غير محدد" : "Not set")}</div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "فصيلة الدم" : "Blood Type"}</div>
+              <div className="font-bold text-foreground text-sm">{pilgrim?.bloodType || (ar ? "غير محدد" : "Not set")}</div>
             </div>
             <div className={isRTL ? "text-right" : ""}>
-              <div className="text-xs text-[#8B6E4E] mb-1">{ar ? "الحالة الصحية" : "Health Status"}</div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "الحالة الصحية" : "Health Status"}</div>
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${healthColor}`}>{healthLabel}</span>
             </div>
             <div className={`col-span-2 ${isRTL ? "text-right" : ""}`}>
-              <div className="text-xs text-[#8B6E4E] mb-1">{ar ? "الحساسية" : "Allergies"}</div>
-              <div className="text-sm text-[#3D2B1F]">{pilgrim?.allergies || (ar ? "لا يوجد" : "None reported")}</div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "الحساسية" : "Allergies"}</div>
+              <div className="text-sm text-foreground">{pilgrim?.allergies || (ar ? "لا يوجد" : "None reported")}</div>
             </div>
             <div className={`col-span-2 ${isRTL ? "text-right" : ""}`}>
-              <div className="text-xs text-[#8B6E4E] mb-1">{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</div>
-              <div className="text-sm text-[#3D2B1F]">{pilgrim?.medicalConditions || (ar ? "لا يوجد" : "None")}</div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</div>
+              <div className="text-sm text-foreground">{pilgrim?.medicalConditions || (ar ? "لا يوجد" : "None")}</div>
             </div>
           </div>
         </motion.div>
@@ -189,29 +189,29 @@ export function PilgrimWalletPage() {
         {/* Emergency Contact Card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-          className="rounded-3xl bg-white border border-[#E8DDD0] shadow-sm overflow-hidden"
+          className="rounded-3xl bg-card border border-border shadow-sm overflow-hidden"
         >
-          <div className={`px-5 py-4 border-b border-[#F0E8DC] flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Phone className="w-4 h-4 text-[#0E4D41]" />
-            <span className="font-bold text-sm text-[#3D2B1F]">{ar ? "معلومات الطوارئ" : "Emergency Info"}</span>
+          <div className={`px-5 py-4 border-b border-border flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <Phone className="w-4 h-4 text-primary" />
+            <span className="font-bold text-sm text-foreground">{ar ? "معلومات الطوارئ" : "Emergency Info"}</span>
           </div>
           <div className="px-5 py-4 space-y-3">
             <div className={isRTL ? "text-right" : ""}>
-              <div className="text-xs text-[#8B6E4E] mb-1">{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</div>
-              <div className="text-sm font-semibold text-[#3D2B1F]">{pilgrim?.emergencyContact || (ar ? "غير محدد — يُرجى التحديث" : "Not set — please update")}</div>
+              <div className="text-xs text-muted-foreground mb-1">{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</div>
+              <div className="text-sm font-semibold text-foreground">{pilgrim?.emergencyContact || (ar ? "غير محدد — يُرجى التحديث" : "Not set — please update")}</div>
             </div>
-            <div className="border-t border-[#F0E8DC] pt-3 space-y-1.5">
+            <div className="border-t border-border pt-3 space-y-1.5">
               <div className={`flex items-center justify-between text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
-                <span className="text-[#8B6E4E]">{ar ? "خط دعم وزارة الحج" : "Ministry of Hajj Hotline"}</span>
-                <span className="font-mono font-bold text-[#0E4D41]" dir="ltr">920 002 814</span>
+                <span className="text-muted-foreground">{ar ? "خط دعم وزارة الحج" : "Ministry of Hajj Hotline"}</span>
+                <span className="font-mono font-bold text-primary" dir="ltr">920 002 814</span>
               </div>
               <div className={`flex items-center justify-between text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
-                <span className="text-[#8B6E4E]">{ar ? "الإسعاف" : "Ambulance"}</span>
+                <span className="text-muted-foreground">{ar ? "الإسعاف" : "Ambulance"}</span>
                 <span className="font-mono font-bold text-red-600" dir="ltr">911</span>
               </div>
               <div className={`flex items-center justify-between text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
-                <span className="text-[#8B6E4E]">{ar ? "مشرف المجموعة" : "Group Supervisor"}</span>
-                <span className="font-mono font-bold text-[#0E4D41]" dir="ltr">+966 50 123 4567</span>
+                <span className="text-muted-foreground">{ar ? "مشرف المجموعة" : "Group Supervisor"}</span>
+                <span className="font-mono font-bold text-primary" dir="ltr">+966 50 123 4567</span>
               </div>
             </div>
           </div>
@@ -227,7 +227,7 @@ export function PilgrimWalletPage() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <Label className={`text-xs text-[#8B6E4E] ${isRTL ? "text-right block" : ""}`}>{ar ? "فصيلة الدم" : "Blood Type"}</Label>
+              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "فصيلة الدم" : "Blood Type"}</Label>
               <Select value={form.bloodType} onValueChange={v => setForm(f => ({ ...f, bloodType: v }))}>
                 <SelectTrigger className="mt-1 rounded-xl" data-testid="select-blood-type">
                   <SelectValue placeholder={ar ? "اختر فصيلة الدم" : "Select blood type"} />
@@ -238,7 +238,7 @@ export function PilgrimWalletPage() {
               </Select>
             </div>
             <div>
-              <Label className={`text-xs text-[#8B6E4E] ${isRTL ? "text-right block" : ""}`}>{ar ? "الحالة الصحية" : "Health Status"}</Label>
+              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "الحالة الصحية" : "Health Status"}</Label>
               <Select value={form.healthStatus} onValueChange={v => setForm(f => ({ ...f, healthStatus: v as any }))}>
                 <SelectTrigger className="mt-1 rounded-xl" data-testid="select-health-status">
                   <SelectValue />
@@ -251,7 +251,7 @@ export function PilgrimWalletPage() {
               </Select>
             </div>
             <div>
-              <Label className={`text-xs text-[#8B6E4E] ${isRTL ? "text-right block" : ""}`}>{ar ? "الحساسية (إن وجدت)" : "Allergies (if any)"}</Label>
+              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "الحساسية (إن وجدت)" : "Allergies (if any)"}</Label>
               <Input
                 value={form.allergies}
                 onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))}
@@ -261,7 +261,7 @@ export function PilgrimWalletPage() {
               />
             </div>
             <div>
-              <Label className={`text-xs text-[#8B6E4E] ${isRTL ? "text-right block" : ""}`}>{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</Label>
+              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</Label>
               <Textarea
                 value={form.medicalConditions}
                 onChange={e => setForm(f => ({ ...f, medicalConditions: e.target.value }))}
@@ -272,7 +272,7 @@ export function PilgrimWalletPage() {
               />
             </div>
             <div>
-              <Label className={`text-xs text-[#8B6E4E] ${isRTL ? "text-right block" : ""}`}>{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</Label>
+              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</Label>
               <Input
                 value={form.emergencyContact}
                 onChange={e => setForm(f => ({ ...f, emergencyContact: e.target.value }))}
@@ -293,7 +293,7 @@ export function PilgrimWalletPage() {
               <Button
                 onClick={() => updateHealth.mutate(form)}
                 disabled={updateHealth.isPending}
-                className="flex-1 rounded-xl bg-[#0E4D41] hover:bg-[#0a3d34] text-white"
+                className="flex-1 rounded-xl bg-primary hover:bg-[#0a3d34] text-white"
                 data-testid="btn-save-health"
               >
                 {updateHealth.isPending ? (ar ? "جاري الحفظ..." : "Saving...") : (ar ? "حفظ" : "Save")}

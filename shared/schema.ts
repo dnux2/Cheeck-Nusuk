@@ -50,6 +50,14 @@ export const chatMessages = pgTable("chat_messages", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+export const hajjNotes = pgTable("hajj_notes", {
+  id: serial("id").primaryKey(),
+  pilgrimId: integer("pilgrim_id").references(() => pilgrims.id),
+  stageKey: text("stage_key").notNull(),
+  note: text("note").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertPilgrimSchema = createInsertSchema(pilgrims).omit({ id: true, lastUpdated: true });
 export const insertEmergencySchema = createInsertSchema(emergencies).omit({ id: true, timestamp: true });
 export const insertAlertSchema = createInsertSchema(alerts).omit({ id: true, timestamp: true });
@@ -67,3 +75,5 @@ export type InsertAlert = z.infer<typeof insertAlertSchema>;
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export type HajjNote = typeof hajjNotes.$inferSelect;

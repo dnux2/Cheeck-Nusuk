@@ -81,6 +81,24 @@ export async function registerRoutes(
     }
   });
 
+  // Hajj Notes
+  app.get("/api/pilgrims/:id/hajj-notes", async (req, res) => {
+    const notes = await storage.getHajjNotes(Number(req.params.id));
+    res.json(notes);
+  });
+
+  app.patch("/api/pilgrims/:id/hajj-notes/:stageKey", async (req, res) => {
+    try {
+      const schema = z.object({ note: z.string() });
+      const { note } = schema.parse(req.body);
+      const result = await storage.upsertHajjNote(Number(req.params.id), req.params.stageKey, note);
+      res.json(result);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Failed to save note" });
+    }
+  });
+
   // Emergencies
   app.get(api.emergencies.list.path, async (req, res) => {
     const emergencies = await storage.getEmergencies();

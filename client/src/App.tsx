@@ -22,6 +22,7 @@ import { PilgrimMapPage } from "@/pages/pilgrim-map";
 import { PilgrimWalletPage } from "@/pages/pilgrim-wallet";
 import { PilgrimChatPage } from "@/pages/pilgrim-chat";
 import { PilgrimTranslatorPage } from "@/pages/pilgrim-translator";
+import { PilgrimHajjNotesPage } from "@/pages/pilgrim-hajj-notes";
 
 function PilgrimRoutes() {
   return (
@@ -29,6 +30,7 @@ function PilgrimRoutes() {
       <Route path="/pilgrim" component={PilgrimHomePage} />
       <Route path="/pilgrim/map" component={PilgrimMapPage} />
       <Route path="/pilgrim/wallet" component={PilgrimWalletPage} />
+      <Route path="/pilgrim/hajj-notes" component={PilgrimHajjNotesPage} />
       <Route path="/pilgrim/chat" component={PilgrimChatPage} />
       <Route path="/pilgrim/translator" component={PilgrimTranslatorPage} />
     </Switch>

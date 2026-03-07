@@ -11,10 +11,11 @@ The platform targets Hajj supervisors and administrators who need a unified cont
 
 **Two portals:**
 - **Admin/Supervisor portal** (`/dashboard` and all sidebar routes) — dark emerald design with full management tools
-- **Pilgrim portal** (`/pilgrim/*`) — warm beige Nusuk-style design with dedicated sidebar (desktop) + bottom nav (mobile):
-  - `/pilgrim` — Home: greeting, prayer times, Hajj journey steps, quick actions
+- **Pilgrim portal** (`/pilgrim/*`) — uses the shared design system CSS variables (bg-card, bg-secondary, text-primary, etc.) — same visual language as landing/admin. Desktop sidebar + mobile bottom nav:
+  - `/pilgrim` — Home: greeting banner, SOS button, landing-page-style action cards, Hajj journey steps, prayer times
   - `/pilgrim/map` — Guide map: Leaflet with 24 real facility markers (hospitals, water, mosques, bathrooms, transport) + route guidance
   - `/pilgrim/wallet` — Digital wallet: permit card + health data (blood type, allergies, conditions) + editable form
+  - `/pilgrim/hajj-notes` — Hajj Journal: write notes per Hajj stage (7 stages). Saved to `hajj_notes` DB table. PATCH/GET API.
   - `/pilgrim/chat` — Supervisor chat with message history
   - `/pilgrim/translator` — AI translator with voice input, 8 languages
 
@@ -72,6 +73,7 @@ Preferred communication style: Simple, everyday language.
   - `pilgrims` – Core table: name, nationality, passport number, phone, campaign group, permit status (`Valid`/`Expired`/`Pending`), GPS coordinates, emergency status, plus health fields: bloodType, allergies, medicalConditions, emergencyContact, healthStatus (`Good`/`Stable`/`NeedsAttention`).
   - `emergencies` – Links to pilgrim, stores type (`Medical`/`Lost`/`Security`), status, GPS, timestamp.
   - `alerts` – System alerts: type (`Unauthorized`/`Crowd Density`/`Weather`), message, GPS, status.
+  - `hajj_notes` – Pilgrim journal entries: links to pilgrim, stageKey (tarwiyah/arafat/muzdalifah/eid/tashreeq_11/tashreeq_12/farewell), note text, updatedAt. Upserted on save.
   - `conversations` + `messages` – AI chat history (defined in `shared/models/chat.ts`, used by Replit integration chat storage).
 - **Migrations**: Drizzle Kit (`drizzle-kit push`) reads `shared/schema.ts` and pushes to PostgreSQL.
 

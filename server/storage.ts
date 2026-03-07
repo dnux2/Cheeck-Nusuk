@@ -4,6 +4,7 @@ import {
   emergencies,
   alerts,
   chatMessages,
+  hajjNotes,
   type Pilgrim,
   type InsertPilgrim,
   type Emergency,
@@ -12,8 +13,9 @@ import {
   type InsertAlert,
   type ChatMessage,
   type InsertChatMessage,
+  type HajjNote,
 } from "@shared/schema";
-import { eq, or, isNull } from "drizzle-orm";
+import { eq, or, isNull, and } from "drizzle-orm";
 
 export interface IStorage {
   // Pilgrims
@@ -35,6 +37,10 @@ export interface IStorage {
   // Chat
   getChatMessages(pilgrimId?: number): Promise<ChatMessage[]>;
   createChatMessage(msg: InsertChatMessage): Promise<ChatMessage>;
+
+  // Hajj Notes
+  getHajjNotes(pilgrimId: number): Promise<HajjNote[]>;
+  upsertHajjNote(pilgrimId: number, stageKey: string, note: string): Promise<HajjNote>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -134,6 +140,29 @@ export class DatabaseStorage implements IStorage {
   async createChatMessage(msg: InsertChatMessage): Promise<ChatMessage> {
     const [newMsg] = await db.insert(chatMessages).values(msg).returning();
     return newMsg;
+  }
+
+  // Hajj Notes
+  async getHajjNotes(pilgrimId: number): Promise<HajjNote[]> {
+    return await db.select().from(hajjNotes).where(eq(hajjNotes.pilgrimId, pilgrimId));
+  }
+
+  async upsertHajjNote(pilgrimId: number, stageKey: string, note: string): Promise<HajjNote> {
+    const [existing] = await db.select().from(hajjNotes)
+      .where(and(eq(hajjNotes.pilgrimId, pilgrimId), eq(hajjNotes.stageKey, stageKey)));
+
+    if (existing) {
+      const [updated] = await db.update(hajjNotes)
+        .set({ note, updatedAt: new Date() })
+        .where(and(eq(hajjNotes.pilgrimId, pilgrimId), eq(hajjNotes.stageKey, stageKey)))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(hajjNotes)
+        .values({ pilgrimId, stageKey, note })
+        .returning();
+      return created;
+    }
   }
 }
 
