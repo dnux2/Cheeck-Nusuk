@@ -19,7 +19,7 @@ export function ChatPage() {
   const urlPilgrimId = params.get("pilgrimId") ? Number(params.get("pilgrimId")) : null;
   const [selectedPilgrimId, setSelectedPilgrimId] = useState<number | null>(urlPilgrimId);
   const [input, setInput] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
