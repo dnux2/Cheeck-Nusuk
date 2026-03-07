@@ -112,7 +112,7 @@ export function PilgrimHomePage() {
             disabled={sosSent}
             className={`w-full py-4 rounded-3xl font-bold text-base flex flex-row items-center justify-center gap-3 transition-all shadow-md active:scale-[0.98]
               ${sosSent ? "bg-muted text-muted-foreground" : "text-white"}`}
-            style={!sosSent ? { background: "linear-gradient(135deg, #c49a3c 0%, #8a6520 100%)" } : {}}
+            style={!sosSent ? { background: "linear-gradient(135deg, #f07070 0%, #c0392b 100%)" } : {}}
             dir="ltr"
             data-testid="btn-sos-home"
           >

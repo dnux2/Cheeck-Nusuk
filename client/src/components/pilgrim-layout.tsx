@@ -86,7 +86,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setMobileOpen(false)}
             className="w-full py-2.5 rounded-2xl text-white font-bold text-sm flex flex-row items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.98]"
-            style={{ background: "linear-gradient(135deg, #c49a3c 0%, #8a6520 100%)" }}
+            style={{ background: "linear-gradient(135deg, #f07070 0%, #c0392b 100%)" }}
             dir="ltr"
             data-testid="btn-sos-sidebar"
           >
