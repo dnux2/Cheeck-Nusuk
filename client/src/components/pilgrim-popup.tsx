@@ -37,7 +37,7 @@ function InfoRow({
 }
 
 export function PilgrimPopup({ pilgrim, onClose }: PilgrimPopupProps) {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, lang } = useLanguage();
   const [, navigate] = useLocation();
 
   if (!pilgrim) return null;

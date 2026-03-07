@@ -523,7 +523,7 @@ export function PilgrimGuideMap() {
 
   useEffect(() => { requestGps(); return () => { if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current); }; }, []);
 
-  const [activeFilters, setActiveFilters] = useState<Set<FacilityType>>(new Set(["hospital", "water", "mosque", "bathroom", "transport"]));
+  const [activeFilters, setActiveFilters] = useState<Set<FacilityType>>(new Set(["hospital", "water", "mosque", "bathroom", "transport"] as FacilityType[]));
   const toggleFilter = (type: FacilityType) => setActiveFilters(prev => { const n = new Set(prev); n.has(type) ? n.delete(type) : n.add(type); return n; });
 
   const [navRoute, setNavRoute] = useState<NavRoute | null>(null);
@@ -644,7 +644,7 @@ export function PilgrimGuideMap() {
         }
       },
       () => {},
-      { enableHighAccuracy: true, distanceFilter: 3 }
+      { enableHighAccuracy: true }
     );
   };
 
