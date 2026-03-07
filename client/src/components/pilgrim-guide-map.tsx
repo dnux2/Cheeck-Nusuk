@@ -20,30 +20,44 @@ function DisableParentScroll() {
   const map = useMap();
   useEffect(() => {
     const container = map.getContainer();
-    const locked: Array<{ el: HTMLElement; oy: string }> = [];
-    const lock = () => {
-      if (locked.length === 0) {
-        let el = container.parentElement;
-        while (el && el !== document.body) {
-          const cs = getComputedStyle(el);
-          if (cs.overflowY === "auto" || cs.overflowY === "scroll" || cs.overflow === "auto" || cs.overflow === "scroll") {
-            locked.push({ el, oy: el.style.overflowY });
-            el.style.overflowY = "hidden";
-          }
-          el = el.parentElement;
+    const saved: Array<{ el: HTMLElement; overflowY: string; overflowX: string }> = [];
+    let active = false;
+
+    const lockAll = () => {
+      if (active) return;
+      active = true;
+      let el = container.parentElement;
+      while (el && el !== document.body) {
+        const cs = getComputedStyle(el);
+        const oy = cs.overflowY;
+        const ox = cs.overflowX;
+        if (oy === "auto" || oy === "scroll" || ox === "auto" || ox === "scroll") {
+          saved.push({ el, overflowY: el.style.overflowY, overflowX: el.style.overflowX });
+          el.style.overflowY = "hidden";
+          el.style.overflowX = "hidden";
         }
+        el = el.parentElement;
       }
     };
-    const unlock = () => {
-      locked.forEach(({ el, oy }) => { el.style.overflowY = oy; });
-      locked.length = 0;
+
+    const unlockAll = () => {
+      saved.forEach(({ el, overflowY, overflowX }) => {
+        el.style.overflowY = overflowY;
+        el.style.overflowX = overflowX;
+      });
+      saved.length = 0;
+      active = false;
     };
-    container.addEventListener("mousedown", lock);
-    document.addEventListener("mouseup", unlock);
+
+    container.addEventListener("mousedown", lockAll, { capture: true });
+    document.addEventListener("mouseup", unlockAll, { capture: true });
+    document.addEventListener("mouseleave", unlockAll, { capture: true });
+
     return () => {
-      container.removeEventListener("mousedown", lock);
-      document.removeEventListener("mouseup", unlock);
-      unlock();
+      container.removeEventListener("mousedown", lockAll, { capture: true });
+      document.removeEventListener("mouseup", unlockAll, { capture: true });
+      document.removeEventListener("mouseleave", unlockAll, { capture: true });
+      unlockAll();
     };
   }, [map]);
   return null;

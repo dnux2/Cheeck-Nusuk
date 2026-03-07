@@ -123,17 +123,25 @@
   animation: scanline 3s linear infinite;
 }
 
-/* Leaflet map — enable mouse drag on desktop */
+/* Leaflet map — enable full mouse drag on desktop */
 .leaflet-container {
-  touch-action: none;
-  cursor: grab;
+  touch-action: none !important;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab !important;
 }
-.leaflet-grab {
-  cursor: grab;
+.leaflet-grab,
+.leaflet-container .leaflet-map-pane {
+  cursor: grab !important;
 }
 .leaflet-dragging .leaflet-grab,
-.leaflet-dragging .leaflet-container {
+.leaflet-dragging .leaflet-container,
+.leaflet-dragging .leaflet-map-pane {
   cursor: grabbing !important;
+}
+.leaflet-container * {
+  pointer-events: auto;
 }
 
 /* Pilgrim location pulsing dot */
