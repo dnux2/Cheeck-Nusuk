@@ -115,11 +115,11 @@ export function PilgrimHajjNotesPage() {
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <div className={`flex items-center gap-3 mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center text-primary">
               <BookOpen className="w-5 h-5" />
             </div>
-            <div className={isRTL ? "text-right" : ""}>
+            <div>
               <h1 className="text-xl font-bold text-foreground">{ar ? "يوميات الحج" : "My Hajj Journal"}</h1>
               <p className="text-xs text-muted-foreground">{ar ? "سجّل ذكرياتك ومشاعرك في كل مرحلة" : "Record your memories and feelings at each stage"}</p>
             </div>
@@ -127,7 +127,7 @@ export function PilgrimHajjNotesPage() {
 
           {/* Progress bar */}
           <div className="bg-card border border-border rounded-2xl p-4 mt-4">
-            <div className={`flex items-center justify-between mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">{ar ? "المراحل المسجّلة" : "Stages recorded"}</span>
               <span className="text-xs font-bold text-primary">{notes.length} / {STAGES.length}</span>
             </div>
@@ -164,13 +164,13 @@ export function PilgrimHajjNotesPage() {
                   : "border-border opacity-80"}`}
             >
               {/* Stage header */}
-              <div className={`px-5 pt-4 pb-3 flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className="px-5 pt-4 pb-3 flex items-start gap-3">
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0
                   ${isCurrent ? "bg-accent/10" : isPast ? "bg-secondary" : "bg-muted"}`}>
                   {isPast ? <CheckCircle2 className="w-5 h-5 text-primary" /> : isCurrent ? <Star className="w-5 h-5 text-accent" fill="currentColor" /> : <Clock className="w-5 h-5 text-muted-foreground/50" />}
                 </div>
-                <div className={`flex-1 ${isRTL ? "text-right" : ""}`}>
-                  <div className={`flex items-center gap-2 flex-wrap ${isRTL ? "justify-end" : ""}`}>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-sm text-foreground">{ar ? stage.dayAr : stage.dayEn}</span>
                     {isCurrent && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
@@ -189,7 +189,7 @@ export function PilgrimHajjNotesPage() {
 
               {/* Note area */}
               <div className="px-5 pb-4">
-                <div className={`text-xs font-semibold text-muted-foreground mb-1.5 ${isRTL ? "text-right" : ""}`}>
+                <div className="text-xs font-semibold text-muted-foreground mb-1.5">
                   {ar ? "ملاحظاتي" : "My notes"}{saved && <span className="text-primary ms-1">•</span>}
                 </div>
                 <Textarea
@@ -198,11 +198,11 @@ export function PilgrimHajjNotesPage() {
                   placeholder={ar
                     ? `سجّل أفكارك وذكرياتك في ${stage.dayAr.split("—")[0].trim()}…`
                     : `Write your thoughts for ${stage.dayEn.split("—")[0].trim()}…`}
-                  className={`min-h-[80px] resize-none text-sm bg-background border-border rounded-2xl focus:border-primary/50 transition-colors ${isRTL ? "text-right" : ""}`}
+                  className="min-h-[80px] resize-none text-sm bg-background border-border rounded-2xl focus:border-primary/50 transition-colors"
                   dir={isRTL ? "rtl" : "ltr"}
                   data-testid={`textarea-note-${stage.key}`}
                 />
-                <div className={`mt-2 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <div className="mt-2 flex items-center gap-2">
                   {unsaved && (
                     <Button
                       size="sm"
@@ -228,7 +228,7 @@ export function PilgrimHajjNotesPage() {
         })}
 
         {/* Footer reminder */}
-        <div className={`text-center text-xs text-muted-foreground pb-4 ${isRTL ? "text-right" : ""}`}>
+        <div className="text-center text-xs text-muted-foreground pb-4">
           {ar ? "يومياتك تُحفظ في السحابة — لن تضيع ذكرياتك أبداً ✨" : "Your journal is saved securely in the cloud — your memories are always safe ✨"}
         </div>
       </div>

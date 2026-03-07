@@ -18,18 +18,18 @@ const PRAYER_TIMES = [
 ];
 
 const HAJJ_STEPS = [
-  { key: "tarwiyah",  dayAr: "اليوم الثامن",  dayEn: "Day 8",  ritualAr: "الإحرام والتوجه إلى منى",            ritualEn: "Ihram & travel to Mina",                done: true  },
-  { key: "arafat",   dayAr: "اليوم التاسع",  dayEn: "Day 9",  ritualAr: "الوقوف بعرفات — الركن الأعظم",       ritualEn: "Standing at Arafat — greatest rite",    done: true  },
-  { key: "muzdalifah", dayAr: "الليل",        dayEn: "Night",  ritualAr: "المبيت في مزدلفة وجمع الحصى",       ritualEn: "Stay at Muzdalifah & collect pebbles",  done: false, current: true },
-  { key: "eid",      dayAr: "اليوم العاشر",  dayEn: "Day 10", ritualAr: "رمي الجمرات، الذبح، الحلق، الطواف", ritualEn: "Jamarat, sacrifice, shaving, Tawaf",    done: false },
-  { key: "tashreeq", dayAr: "أيام التشريق",  dayEn: "Tashreeq", ritualAr: "رمي الجمرات الثلاثة",            ritualEn: "Throwing all three Jamarat",            done: false },
+  { key: "tarwiyah",   dayAr: "اليوم الثامن",  dayEn: "Day 8",    ritualAr: "الإحرام والتوجه إلى منى",            ritualEn: "Ihram & travel to Mina",                done: true  },
+  { key: "arafat",     dayAr: "اليوم التاسع",  dayEn: "Day 9",    ritualAr: "الوقوف بعرفات — الركن الأعظم",       ritualEn: "Standing at Arafat — greatest rite",    done: true  },
+  { key: "muzdalifah", dayAr: "الليل",          dayEn: "Night",    ritualAr: "المبيت في مزدلفة وجمع الحصى",       ritualEn: "Stay at Muzdalifah & collect pebbles",  done: false, current: true },
+  { key: "eid",        dayAr: "اليوم العاشر",  dayEn: "Day 10",   ritualAr: "رمي الجمرات، الذبح، الحلق، الطواف", ritualEn: "Jamarat, sacrifice, shaving, Tawaf",    done: false },
+  { key: "tashreeq",   dayAr: "أيام التشريق",  dayEn: "Tashreeq", ritualAr: "رمي الجمرات الثلاثة",               ritualEn: "Throwing all three Jamarat",            done: false },
 ];
 
 const QUICK_ACTIONS = [
-  { href: "/pilgrim/map",        iconEl: <Map className="w-6 h-6" />,          titleAr: "خريطتي",     titleEn: "My Map",      descAr: "أقرب المنشآت والمسار", descEn: "Nearest facilities & route", color: "text-primary" },
-  { href: "/pilgrim/hajj-notes", iconEl: <BookOpen className="w-6 h-6" />,     titleAr: "يومياتي",   titleEn: "My Journal",  descAr: "نوتات على مراحل الحج",  descEn: "Notes on Hajj stages",       color: "text-accent"  },
-  { href: "/pilgrim/chat",       iconEl: <MessageSquare className="w-6 h-6" />, titleAr: "رسائلي",    titleEn: "Messages",    descAr: "تواصل مع المشرف",       descEn: "Chat with supervisor",       color: "text-primary" },
-  { href: "/pilgrim/translator", iconEl: <Languages className="w-6 h-6" />,    titleAr: "المترجم",   titleEn: "Translator",  descAr: "ترجمة فورية بالذكاء الاصطناعي", descEn: "AI instant translation", color: "text-accent" },
+  { href: "/pilgrim/map",        iconEl: <Map className="w-6 h-6" />,           titleAr: "خريطتي",  titleEn: "My Map",     descAr: "أقرب المنشآت والمسار",          descEn: "Nearest facilities & route",     color: "text-primary" },
+  { href: "/pilgrim/hajj-notes", iconEl: <BookOpen className="w-6 h-6" />,      titleAr: "يومياتي", titleEn: "My Journal", descAr: "نوتات على مراحل الحج",           descEn: "Notes on Hajj stages",           color: "text-accent"  },
+  { href: "/pilgrim/chat",       iconEl: <MessageSquare className="w-6 h-6" />, titleAr: "رسائلي",  titleEn: "Messages",   descAr: "تواصل مع المشرف",               descEn: "Chat with supervisor",           color: "text-primary" },
+  { href: "/pilgrim/translator", iconEl: <Languages className="w-6 h-6" />,     titleAr: "المترجم", titleEn: "Translator", descAr: "ترجمة فورية بالذكاء الاصطناعي", descEn: "AI instant translation",         color: "text-accent"  },
 ];
 
 export function PilgrimHomePage() {
@@ -55,8 +55,8 @@ export function PilgrimHomePage() {
   const currentStep = HAJJ_STEPS.find(s => s.current);
 
   const permitLabel =
-    pilgrim?.permitStatus === "Valid"   ? (ar ? "ساري" : "Valid")
-    : pilgrim?.permitStatus === "Expired" ? (ar ? "منتهي" : "Expired")
+    pilgrim?.permitStatus === "Valid"   ? (ar ? "ساري"       : "Valid")
+    : pilgrim?.permitStatus === "Expired" ? (ar ? "منتهي"     : "Expired")
     : (ar ? "قيد التحقق" : "Pending");
 
   const permitClass =
@@ -68,29 +68,29 @@ export function PilgrimHomePage() {
     <PilgrimLayout>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5" dir={isRTL ? "rtl" : "ltr"}>
 
-        {/* Welcome banner — same style as landing hero gradient */}
+        {/* Welcome banner */}
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl overflow-hidden"
           style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(157 50% 30%) 100%)" }}
         >
           <div className="px-6 pt-5 pb-4">
-            <div className={`text-xs font-semibold text-primary-foreground/60 mb-1 ${isRTL ? "text-right" : ""}`}>
+            <div className="text-xs font-semibold text-primary-foreground/60 mb-1">
               ٢٩ ذو الحجة ١٤٤٦
             </div>
-            <h1 className={`text-xl font-bold text-primary-foreground mb-0.5 ${isRTL ? "text-right" : ""}`}>
+            <h1 className="text-xl font-bold text-primary-foreground mb-0.5">
               {ar ? `مرحباً، ${pilgrim?.name?.split(" ")[0] || "أحمد"} 👋` : `Welcome, ${pilgrim?.name?.split(" ")[0] || "Ahmed"} 👋`}
             </h1>
-            <p className={`text-sm text-primary-foreground/70 ${isRTL ? "text-right" : ""}`}>
+            <p className="text-sm text-primary-foreground/70">
               {ar ? "تقبّل الله حجكم ومناسككم" : "May Allah accept your pilgrimage"}
             </p>
           </div>
           <div className="flex border-t border-white/15">
-            <div className="flex-1 px-4 py-3 border-r border-white/15 text-center">
+            <div className="flex-1 px-4 py-3 border-e border-white/15 text-center">
               <div className="text-[10px] text-primary-foreground/50 mb-1">{ar ? "التصريح" : "Permit"}</div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${permitClass}`}>{permitLabel}</span>
             </div>
-            <div className="flex-1 px-4 py-3 border-r border-white/15 text-center">
+            <div className="flex-1 px-4 py-3 border-e border-white/15 text-center">
               <div className="text-[10px] text-primary-foreground/50 mb-1">{ar ? "الصحة" : "Health"}</div>
               <div className="text-xs font-bold text-primary-foreground">
                 {pilgrim?.healthStatus === "NeedsAttention" ? (ar ? "تحتاج متابعة" : "Needs Attention")
@@ -119,9 +119,9 @@ export function PilgrimHomePage() {
           </button>
         </motion.div>
 
-        {/* Quick actions — same style as landing feature cards */}
+        {/* Quick actions */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-          <h2 className={`text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3 ${isRTL ? "text-right" : ""}`}>
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">
             {ar ? "الإجراءات السريعة" : "Quick Actions"}
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -134,8 +134,8 @@ export function PilgrimHomePage() {
                   <div className={`w-11 h-11 rounded-2xl bg-secondary flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 ${action.color}`}>
                     {action.iconEl}
                   </div>
-                  <div className={`font-bold text-sm text-foreground ${isRTL ? "text-right" : ""}`}>{ar ? action.titleAr : action.titleEn}</div>
-                  <div className={`text-xs text-muted-foreground mt-0.5 ${isRTL ? "text-right" : ""}`}>{ar ? action.descAr : action.descEn}</div>
+                  <div className="font-bold text-sm text-foreground">{ar ? action.titleAr : action.titleEn}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{ar ? action.descAr : action.descEn}</div>
                 </div>
               </Link>
             ))}
@@ -148,8 +148,8 @@ export function PilgrimHomePage() {
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
             className="bg-card border border-border rounded-3xl p-5 hover:border-primary/30 hover:shadow-md transition-all"
           >
-            <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-              <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                   <Star className="w-4 h-4 text-accent" fill="currentColor" />
                 </div>
@@ -159,7 +159,7 @@ export function PilgrimHomePage() {
                 {ar ? "يومياتي" : "My Notes"} <ChevronRight className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
               </Link>
             </div>
-            <div className={`mt-3 ${isRTL ? "text-right" : ""}`}>
+            <div className="mt-3">
               <div className="font-bold text-foreground text-sm">{ar ? currentStep.dayAr : currentStep.dayEn}</div>
               <div className="text-muted-foreground text-xs mt-0.5">{ar ? currentStep.ritualAr : currentStep.ritualEn}</div>
             </div>
@@ -171,11 +171,11 @@ export function PilgrimHomePage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
           className="bg-card border border-border rounded-3xl overflow-hidden"
         >
-          <div className={`px-5 py-4 border-b border-border flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
             <Clock className="w-4 h-4 text-accent" />
             <span className="font-bold text-sm text-foreground">{ar ? "مواقيت الصلاة — مكة المكرمة" : "Prayer Times — Makkah"}</span>
           </div>
-          <div className="flex divide-x divide-border">
+          <div className="flex divide-x divide-border rtl:divide-x-reverse">
             {PRAYER_TIMES.map((p) => {
               const isNext = p.ar === "العشاء";
               return (
@@ -194,23 +194,25 @@ export function PilgrimHomePage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
           className="bg-card border border-border rounded-3xl overflow-hidden"
         >
-          <div className={`px-5 py-4 border-b border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <Star className="w-4 h-4 text-accent" />
               <span className="font-bold text-sm text-foreground">{ar ? "مراحل الحج" : "Hajj Journey"}</span>
             </div>
-            <Link href="/pilgrim/hajj-notes" className="text-xs text-primary font-semibold">{ar ? "أضف ملاحظة ←" : "Add Note →"}</Link>
+            <Link href="/pilgrim/hajj-notes" className="text-xs text-primary font-semibold">
+              {ar ? "← أضف ملاحظة" : "Add Note →"}
+            </Link>
           </div>
           <div className="px-5 py-4 space-y-3">
             {HAJJ_STEPS.map((step, i) => (
-              <div key={i} className={`flex items-start gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div key={i} className="flex items-start gap-3">
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5
                   ${step.done ? "bg-primary" : step.current ? "bg-accent" : "bg-border"}`}>
                   {step.done
                     ? <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />
                     : <div className={`w-2 h-2 rounded-full ${step.current ? "bg-white" : "bg-muted-foreground/40"}`} />}
                 </div>
-                <div className={`flex-1 ${isRTL ? "text-right" : ""}`}>
+                <div className="flex-1">
                   <div className={`text-xs font-bold ${step.done ? "text-primary" : step.current ? "text-accent" : "text-muted-foreground"}`}>
                     {ar ? step.dayAr : step.dayEn}
                   </div>
@@ -228,11 +230,11 @@ export function PilgrimHomePage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.21 }}
           className="bg-card border border-border rounded-3xl p-5"
         >
-          <div className={`flex items-center gap-2 mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="flex items-center gap-2 mb-2">
             <Droplets className="w-4 h-4 text-blue-500" />
             <span className="font-bold text-xs text-blue-600">{ar ? "نصيحة صحية" : "Health Tip"}</span>
           </div>
-          <p className={`text-xs text-muted-foreground leading-relaxed ${isRTL ? "text-right" : ""}`}>
+          <p className="text-xs text-muted-foreground leading-relaxed">
             {ar
               ? "درجة الحرارة ٤٢°م — اشرب ماء زمزم كل ٣٠ دقيقة، تجنب التعرض المباشر للشمس بين ١١ص و٣م. ارتدِ ملابس بيضاء فضفاضة."
               : "Temperature 42°C — Drink Zamzam water every 30 min. Avoid direct sun between 11AM–3PM. Wear loose white clothing."}

@@ -105,19 +105,19 @@ export function PilgrimTranslatorPage() {
       <div className="max-w-xl mx-auto px-4 py-6 space-y-4" dir={isRTL ? "rtl" : "ltr"}>
 
         {/* Header */}
-        <div className={isRTL ? "text-right" : ""}>
-          <div className={`flex items-center gap-2 mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
             <Languages className="w-5 h-5 text-accent" />
             <h1 className="font-bold text-primary text-xl">{ar ? "المترجم الذكي" : "AI Translator"}</h1>
           </div>
           <p className="text-xs text-muted-foreground">{ar ? "ترجمة فورية بالذكاء الاصطناعي بـ٨ لغات" : "Instant AI translation in 8 languages"}</p>
         </div>
 
-        {/* Source language bar */}
+        {/* Source panel */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
           {/* Language selector + mic */}
-          <div className={`flex items-center justify-between px-4 pt-4 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
             <select
               value={sourceLang}
               onChange={e => setSourceLang(e.target.value)}
@@ -141,14 +141,14 @@ export function PilgrimTranslatorPage() {
             value={sourceText}
             onChange={e => setSourceText(e.target.value)}
             placeholder={ar ? `اكتب النص بـ ${getLangLabel(sourceLang)}...` : `Type text in ${getLangLabel(sourceLang)}...`}
-            className={`w-full px-4 pb-4 text-sm bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground/50 min-h-[100px] ${isRTL ? "text-right" : ""}`}
+            className="w-full px-4 pb-4 text-sm bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground/50 min-h-[100px]"
             dir="auto"
             rows={4}
             data-testid="input-translate-text"
           />
 
           {sourceText && (
-            <div className={`px-4 pb-3 border-t border-border pt-2 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="px-4 pb-3 border-t border-border pt-2 flex items-center gap-2">
               <button onClick={() => copyText(sourceText)} className="p-1.5 rounded-xl hover:bg-secondary text-muted-foreground">
                 <Copy className="w-3.5 h-3.5" />
               </button>
@@ -168,11 +168,11 @@ export function PilgrimTranslatorPage() {
           </button>
         </div>
 
-        {/* Target language + translate button */}
+        {/* Target language */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="bg-card border border-border rounded-3xl p-4 space-y-3">
-          <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className={`text-xs font-bold text-muted-foreground ${isRTL ? "text-right" : ""}`}>{ar ? "ترجم إلى" : "Translate to"}</div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-bold text-muted-foreground">{ar ? "ترجم إلى" : "Translate to"}</div>
             <select
               value={targetLang}
               onChange={e => setTargetLang(e.target.value)}
@@ -211,9 +211,9 @@ export function PilgrimTranslatorPage() {
         {translate.data && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-3xl border-2 border-primary/20 bg-secondary/30 overflow-hidden shadow-sm">
-            <div className={`px-5 pt-4 pb-2 flex items-center justify-between border-b border-border ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-border">
               <span className="text-xs font-bold text-primary">{getLangLabel(targetLang)}</span>
-              <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className="flex gap-2">
                 <button
                   onClick={handleSpeak}
                   data-testid="btn-speak-translation"
@@ -226,7 +226,7 @@ export function PilgrimTranslatorPage() {
                 </button>
               </div>
             </div>
-            <p className={`px-5 py-4 text-base text-foreground font-medium leading-relaxed ${isRTL ? "text-right" : ""}`} dir="auto">
+            <p className="px-5 py-4 text-base text-foreground font-medium leading-relaxed" dir="auto">
               {translate.data.translatedText}
             </p>
           </motion.div>

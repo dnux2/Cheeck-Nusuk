@@ -36,11 +36,11 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-full bg-card">
       {/* Logo */}
       <div className="px-5 py-6 border-b border-border">
-        <Link href="/" className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <Link href="/" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl overflow-hidden bg-secondary flex-shrink-0">
             <img src={logoImg} alt="CheckNusuk" className="w-full h-full object-contain" />
           </div>
-          <div className={isRTL ? "text-right" : ""}>
+          <div>
             <div className="font-bold text-primary text-sm">CheckNusuk</div>
             <div className="text-xs text-muted-foreground">{ar ? "بوابة الحاج" : "Pilgrim Portal"}</div>
           </div>
@@ -49,9 +49,9 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
 
       {/* Pilgrim info card */}
       <div className="mx-4 mt-4 p-3 rounded-2xl bg-primary text-primary-foreground shadow-md">
-        <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold flex-shrink-0">أ</div>
-          <div className={isRTL ? "text-right" : ""}>
+          <div>
             <div className="font-bold text-sm">{ar ? "أحمد علي" : "Ahmed Ali"}</div>
             <div className="text-xs text-primary-foreground/70">{ar ? "حملة التوحيد · مكة المكرمة" : "Al-Tawheed · Makkah"}</div>
           </div>
@@ -72,7 +72,6 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-secondary hover:text-primary"
                 }
-                ${isRTL ? "flex-row-reverse" : ""}
               `}
               data-testid={`nav-pilgrim-${item.href.split("/").pop() || "home"}`}
             >
@@ -112,7 +111,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           </button>
         </Link>
         {/* Back to supervisor */}
-        <Link href="/dashboard" className={`flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors ${isRTL ? "flex-row-reverse" : ""}`}>
+        <Link href="/dashboard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
           <LogOut className="w-3.5 h-3.5" />
           {ar ? "لوحة المشرف" : "Supervisor Dashboard"}
         </Link>
@@ -161,7 +160,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           <button onClick={() => setMobileOpen(true)} className="p-2 rounded-xl hover:bg-secondary" data-testid="btn-open-pilgrim-menu">
             <Menu className="w-5 h-5 text-primary" />
           </button>
-          <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl overflow-hidden bg-secondary">
               <img src={logoImg} alt="CheckNusuk" className="w-full h-full object-contain" />
             </div>

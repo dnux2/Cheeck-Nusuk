@@ -83,7 +83,7 @@ export function PilgrimWalletPage() {
       <div className="max-w-xl mx-auto px-4 py-6 space-y-5" dir={isRTL ? "rtl" : "ltr"}>
 
         {/* Title */}
-        <div className={isRTL ? "text-right" : ""}>
+        <div>
           <h1 className="font-bold text-primary text-xl">{ar ? "المحفظة الرقمية" : "Digital Wallet"}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{ar ? "تصريحك وبياناتك الصحية في مكان واحد" : "Your permit and health data in one place"}</p>
         </div>
@@ -95,7 +95,7 @@ export function PilgrimWalletPage() {
         >
           {/* Card top */}
           <div className="px-6 pt-5 pb-4">
-            <div className={`flex items-start justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="flex items-start justify-between">
               <div>
                 <div className="text-xs text-white/70 mb-1 font-medium">{ar ? "تصريح الحج الرسمي" : "Official Hajj Permit"}</div>
                 <div className="text-lg font-bold text-white">{isLoading ? "..." : pilgrim?.name}</div>
@@ -107,7 +107,7 @@ export function PilgrimWalletPage() {
           </div>
 
           {/* Card mid */}
-          <div className={`px-6 pb-4 grid grid-cols-2 gap-3 ${isRTL ? "text-right" : ""}`}>
+          <div className="px-6 pb-4 grid grid-cols-2 gap-3">
             <div>
               <div className="text-xs text-white/60">{ar ? "رقم الجواز" : "Passport No."}</div>
               <div className="text-sm font-bold text-white mt-0.5 font-mono">{pilgrim?.passportNumber || "—"}</div>
@@ -127,7 +127,7 @@ export function PilgrimWalletPage() {
           </div>
 
           {/* Card bottom */}
-          <div className={`px-6 pb-5 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="px-6 pb-5 flex items-center justify-between">
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${permitColor.badge}`}>
               {pilgrim?.permitStatus === "Valid"
                 ? <CheckCircle2 className="w-3.5 h-3.5" />
@@ -152,8 +152,8 @@ export function PilgrimWalletPage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
           className="rounded-3xl bg-card border border-border shadow-sm overflow-hidden"
         >
-          <div className={`px-5 py-4 border-b border-border flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <Heart className="w-4 h-4 text-red-500" />
               <span className="font-bold text-sm text-foreground">{ar ? "البيانات الصحية" : "Health Data"}</span>
             </div>
@@ -167,19 +167,19 @@ export function PilgrimWalletPage() {
             </button>
           </div>
           <div className="px-5 py-4 grid grid-cols-2 gap-4">
-            <div className={isRTL ? "text-right" : ""}>
+            <div>
               <div className="text-xs text-muted-foreground mb-1">{ar ? "فصيلة الدم" : "Blood Type"}</div>
               <div className="font-bold text-foreground text-sm">{pilgrim?.bloodType || (ar ? "غير محدد" : "Not set")}</div>
             </div>
-            <div className={isRTL ? "text-right" : ""}>
+            <div>
               <div className="text-xs text-muted-foreground mb-1">{ar ? "الحالة الصحية" : "Health Status"}</div>
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${healthColor}`}>{healthLabel}</span>
             </div>
-            <div className={`col-span-2 ${isRTL ? "text-right" : ""}`}>
+            <div className="col-span-2">
               <div className="text-xs text-muted-foreground mb-1">{ar ? "الحساسية" : "Allergies"}</div>
               <div className="text-sm text-foreground">{pilgrim?.allergies || (ar ? "لا يوجد" : "None reported")}</div>
             </div>
-            <div className={`col-span-2 ${isRTL ? "text-right" : ""}`}>
+            <div className="col-span-2">
               <div className="text-xs text-muted-foreground mb-1">{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</div>
               <div className="text-sm text-foreground">{pilgrim?.medicalConditions || (ar ? "لا يوجد" : "None")}</div>
             </div>
@@ -191,25 +191,25 @@ export function PilgrimWalletPage() {
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
           className="rounded-3xl bg-card border border-border shadow-sm overflow-hidden"
         >
-          <div className={`px-5 py-4 border-b border-border flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
             <Phone className="w-4 h-4 text-primary" />
             <span className="font-bold text-sm text-foreground">{ar ? "معلومات الطوارئ" : "Emergency Info"}</span>
           </div>
           <div className="px-5 py-4 space-y-3">
-            <div className={isRTL ? "text-right" : ""}>
+            <div>
               <div className="text-xs text-muted-foreground mb-1">{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</div>
               <div className="text-sm font-semibold text-foreground">{pilgrim?.emergencyContact || (ar ? "غير محدد — يُرجى التحديث" : "Not set — please update")}</div>
             </div>
             <div className="border-t border-border pt-3 space-y-1.5">
-              <div className={`flex items-center justify-between text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{ar ? "خط دعم وزارة الحج" : "Ministry of Hajj Hotline"}</span>
                 <span className="font-mono font-bold text-primary" dir="ltr">920 002 814</span>
               </div>
-              <div className={`flex items-center justify-between text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{ar ? "الإسعاف" : "Ambulance"}</span>
                 <span className="font-mono font-bold text-red-600" dir="ltr">911</span>
               </div>
-              <div className={`flex items-center justify-between text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{ar ? "مشرف المجموعة" : "Group Supervisor"}</span>
                 <span className="font-mono font-bold text-primary" dir="ltr">+966 50 123 4567</span>
               </div>
@@ -223,11 +223,11 @@ export function PilgrimWalletPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md rounded-3xl" dir={isRTL ? "rtl" : "ltr"}>
           <DialogHeader>
-            <DialogTitle className={isRTL ? "text-right" : ""}>{ar ? "تحديث البيانات الصحية" : "Update Health Data"}</DialogTitle>
+            <DialogTitle>{ar ? "تحديث البيانات الصحية" : "Update Health Data"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
-              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "فصيلة الدم" : "Blood Type"}</Label>
+              <Label className="text-xs text-muted-foreground">{ar ? "فصيلة الدم" : "Blood Type"}</Label>
               <Select value={form.bloodType} onValueChange={v => setForm(f => ({ ...f, bloodType: v }))}>
                 <SelectTrigger className="mt-1 rounded-xl" data-testid="select-blood-type">
                   <SelectValue placeholder={ar ? "اختر فصيلة الدم" : "Select blood type"} />
@@ -238,7 +238,7 @@ export function PilgrimWalletPage() {
               </Select>
             </div>
             <div>
-              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "الحالة الصحية" : "Health Status"}</Label>
+              <Label className="text-xs text-muted-foreground">{ar ? "الحالة الصحية" : "Health Status"}</Label>
               <Select value={form.healthStatus} onValueChange={v => setForm(f => ({ ...f, healthStatus: v as any }))}>
                 <SelectTrigger className="mt-1 rounded-xl" data-testid="select-health-status">
                   <SelectValue />
@@ -251,7 +251,7 @@ export function PilgrimWalletPage() {
               </Select>
             </div>
             <div>
-              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "الحساسية (إن وجدت)" : "Allergies (if any)"}</Label>
+              <Label className="text-xs text-muted-foreground">{ar ? "الحساسية (إن وجدت)" : "Allergies (if any)"}</Label>
               <Input
                 value={form.allergies}
                 onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))}
@@ -261,7 +261,7 @@ export function PilgrimWalletPage() {
               />
             </div>
             <div>
-              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</Label>
+              <Label className="text-xs text-muted-foreground">{ar ? "الأمراض المزمنة" : "Chronic Conditions"}</Label>
               <Textarea
                 value={form.medicalConditions}
                 onChange={e => setForm(f => ({ ...f, medicalConditions: e.target.value }))}
@@ -272,7 +272,7 @@ export function PilgrimWalletPage() {
               />
             </div>
             <div>
-              <Label className={`text-xs text-muted-foreground ${isRTL ? "text-right block" : ""}`}>{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</Label>
+              <Label className="text-xs text-muted-foreground">{ar ? "جهة الاتصال في الطوارئ" : "Emergency Contact"}</Label>
               <Input
                 value={form.emergencyContact}
                 onChange={e => setForm(f => ({ ...f, emergencyContact: e.target.value }))}

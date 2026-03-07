@@ -46,14 +46,14 @@ export function PilgrimChatPage() {
 
   return (
     <PilgrimLayout>
-      <div className="flex flex-col h-screen" style={{ direction: isRTL ? "rtl" : "ltr" }}>
+      <div className="flex flex-col h-screen" dir={isRTL ? "rtl" : "ltr"}>
 
         {/* Header */}
         <div className="px-5 py-4 border-b border-border bg-card flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center flex-shrink-0">
             <Shield className="w-5 h-5 text-white" />
           </div>
-          <div className={isRTL ? "text-right" : ""}>
+          <div>
             <div className="font-bold text-primary text-sm">{ar ? "المشرف — حملة التوحيد" : "Supervisor — Al-Tawheed Group"}</div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-2 h-2 bg-emerald-500 rounded-full" />
@@ -78,16 +78,19 @@ export function PilgrimChatPage() {
                 key={msg.id}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.02 }}
-                className={`flex ${isPilgrim ? (isRTL ? "justify-start" : "justify-end") : (isRTL ? "justify-end" : "justify-start")}`}
+                className={`flex ${isPilgrim
+                  ? (isRTL ? "justify-start" : "justify-end")
+                  : (isRTL ? "justify-end" : "justify-start")}`}
               >
                 {!isPilgrim && (
-                  <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1 mr-2 ml-2">
+                  <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1 mx-2">
                     <Shield className="w-3.5 h-3.5 text-white" />
                   </div>
                 )}
                 <div className={`max-w-[72%] ${isPilgrim ? "items-end" : "items-start"} flex flex-col`}>
                   <div
-                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isRTL ? "text-right" : "text-left"}
+                    dir="auto"
+                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed
                       ${isPilgrim
                         ? "bg-primary text-white rounded-br-sm"
                         : msg.pilgrimId === null
@@ -104,7 +107,7 @@ export function PilgrimChatPage() {
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1 px-1">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
-                    {isPilgrim && <span className="mr-1 ml-1 text-emerald-500">✓✓</span>}
+                    {isPilgrim && <span className="mx-1 text-emerald-500">✓✓</span>}
                   </div>
                 </div>
               </motion.div>
@@ -115,25 +118,26 @@ export function PilgrimChatPage() {
 
         {/* Input */}
         <div className="px-4 py-3 bg-card border-t border-border">
-          <div className={`flex gap-2 items-end ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className="flex gap-2 items-end">
             <div className="flex-1 bg-card border border-border rounded-2xl px-4 py-2.5 shadow-sm">
               <textarea
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder={ar ? "اكتب رسالتك للمشرف..." : "Type a message to your supervisor..."}
-                className={`w-full text-sm bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground max-h-20 ${isRTL ? "text-right" : ""}`}
+                className="w-full text-sm bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground max-h-20"
                 rows={1}
+                dir="auto"
                 data-testid="input-chat-message"
               />
             </div>
             <button
               onClick={handleSend}
               disabled={!chatInput.trim() || sendChatMsg.isPending}
-              className="w-10 h-10 rounded-2xl bg-primary hover:bg-[#0a3d34] disabled:opacity-40 flex items-center justify-center transition-colors flex-shrink-0 shadow-md"
+              className="w-10 h-10 rounded-2xl bg-primary hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center transition-colors flex-shrink-0 shadow-md"
               data-testid="btn-send-chat"
             >
-              <Send className={`w-4 h-4 text-white ${isRTL ? "rotate-180" : ""}`} />
+              <Send className="w-4 h-4 text-white" />
             </button>
           </div>
         </div>
