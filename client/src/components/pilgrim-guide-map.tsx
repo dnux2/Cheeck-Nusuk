@@ -121,14 +121,52 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+type GpsStatus = "idle" | "requesting" | "granted" | "denied";
+
+function FlyToPos({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => { map.flyTo([lat, lng], 16, { duration: 1.5 }); }, [lat, lng]);
+  return null;
+}
+
 export function PilgrimGuideMap() {
   const { lang, isRTL } = useLanguage();
   const { toast } = useToast();
   const ar = lang === "ar";
 
   const { data: pilgrim } = useQuery<Pilgrim>({ queryKey: ["/api/pilgrims/1"] });
-  const pilgrimLat = pilgrim?.locationLat ?? 21.4225;
-  const pilgrimLng = pilgrim?.locationLng ?? 39.8262;
+  const fallbackLat = pilgrim?.locationLat ?? 21.4225;
+  const fallbackLng = pilgrim?.locationLng ?? 39.8262;
+
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle");
+  const [gpsPos, setGpsPos] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [flyToGps, setFlyToGps] = useState(false);
+
+  const myLat = gpsPos?.lat ?? fallbackLat;
+  const myLng = gpsPos?.lng ?? fallbackLng;
+
+  const requestGps = () => {
+    if (!navigator.geolocation) {
+      setGpsStatus("denied");
+      return;
+    }
+    setGpsStatus("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsPos({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
+        setGpsStatus("granted");
+        setFlyToGps(true);
+        toast({ title: ar ? "✅ تم تحديد موقعك الحقيقي" : "✅ Real location detected" });
+      },
+      () => {
+        setGpsStatus("denied");
+        toast({ title: ar ? "⚠️ تعذّر الوصول للموقع" : "⚠️ Location access denied", variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  useEffect(() => { requestGps(); }, []);
 
   const [activeFilters, setActiveFilters] = useState<Set<FacilityType>>(new Set(["hospital", "water", "mosque", "bathroom", "transport"]));
   const [routeLine, setRouteLine] = useState<[number, number][] | null>(null);
@@ -143,9 +181,9 @@ export function PilgrimGuideMap() {
   };
 
   const handleNavigate = (facility: Facility) => {
-    const km = haversineKm(pilgrimLat, pilgrimLng, facility.lat, facility.lng);
+    const km = haversineKm(myLat, myLng, facility.lat, facility.lng);
     const mins = Math.round((km / 5) * 60);
-    setRouteLine([[pilgrimLat, pilgrimLng], [facility.lat, facility.lng]]);
+    setRouteLine([[myLat, myLng], [facility.lat, facility.lng]]);
     setRouteInfo({ name: ar ? facility.nameAr : facility.nameEn, km });
     toast({
       title: ar ? `🗺️ توجيه إلى: ${facility.nameAr}` : `🗺️ Navigating to: ${facility.nameEn}`,
@@ -159,6 +197,34 @@ export function PilgrimGuideMap() {
 
   return (
     <div className="flex flex-col h-full" style={{ direction: isRTL ? "rtl" : "ltr" }}>
+
+      {/* GPS status banner */}
+      {gpsStatus === "requesting" && (
+        <div className="px-4 py-2 text-xs flex items-center gap-2 border-b border-[#a8d4cb]" style={{ background: "#d4ede6", color: "#0E4D41" }}>
+          <span className="animate-pulse">📡</span>
+          <span className="font-semibold">{ar ? "جاري تحديد موقعك الحقيقي…" : "Detecting your real location…"}</span>
+        </div>
+      )}
+      {gpsStatus === "denied" && (
+        <div className="px-4 py-2 text-xs flex items-center justify-between gap-2 border-b border-orange-200 bg-orange-50">
+          <span className="text-orange-700 font-semibold">
+            {ar ? "⚠️ لم يُسمح بالوصول للموقع — يُعرض موقع افتراضي" : "⚠️ Location denied — showing default position"}
+          </span>
+          <button onClick={requestGps} className="text-[#0E4D41] font-bold underline text-[11px]">
+            {ar ? "إعادة المحاولة" : "Retry"}
+          </button>
+        </div>
+      )}
+      {gpsStatus === "granted" && gpsPos && (
+        <div className="px-4 py-2 text-xs flex items-center justify-between border-b border-[#a8d4cb]" style={{ background: "#d4ede6", color: "#0E4D41" }}>
+          <span className="font-semibold">
+            📍 {ar ? `موقعك الحقيقي · دقة ${Math.round(gpsPos.accuracy)} م` : `Real location · ±${Math.round(gpsPos.accuracy)} m accuracy`}
+          </span>
+          <button onClick={requestGps} className="opacity-60 hover:opacity-100 font-bold text-[11px]">
+            {ar ? "تحديث" : "Refresh"}
+          </button>
+        </div>
+      )}
 
       {/* Filter bar */}
       <div className="px-4 py-3 bg-card border-b border-border overflow-x-auto">
@@ -195,7 +261,7 @@ export function PilgrimGuideMap() {
       {/* Map */}
       <div className="flex-1" style={{ minHeight: 0 }}>
         <MapContainer
-          center={[pilgrimLat, pilgrimLng]}
+          center={[fallbackLat, fallbackLng]}
           zoom={14}
           style={{ width: "100%", height: "100%" }}
           zoomControl={false}
@@ -205,8 +271,10 @@ export function PilgrimGuideMap() {
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
 
+          {flyToGps && gpsPos && <FlyToPos lat={gpsPos.lat} lng={gpsPos.lng} />}
+
           {/* Pilgrim location — pulsing dot */}
-          <PilgrimDot lat={pilgrimLat} lng={pilgrimLng} ar={ar} />
+          <PilgrimDot lat={myLat} lng={myLng} ar={ar} />
 
           {/* Route line */}
           {routeLine && (
@@ -218,7 +286,7 @@ export function PilgrimGuideMap() {
 
           {/* Facility markers */}
           {visibleFacilities.map(facility => {
-            const km = haversineKm(pilgrimLat, pilgrimLng, facility.lat, facility.lng);
+            const km = haversineKm(myLat, myLng, facility.lat, facility.lng);
             const distLabel = km < 1 ? `${Math.round(km * 1000)} م` : `${km.toFixed(1)} كم`;
             return (
               <Marker
