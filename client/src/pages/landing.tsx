@@ -94,7 +94,7 @@ export function LandingPage() {
             className="mt-10 flex flex-col sm:flex-row gap-4"
           >
             <Link
-              href="/login?tab=supervisor"
+              href="/dashboard"
               data-testid="link-admin-entry"
               className="group flex items-center gap-3 px-7 py-3.5 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/40 hover:shadow-primary/60 hover:-translate-y-0.5 transition-all duration-300"
             >
@@ -107,7 +107,7 @@ export function LandingPage() {
             </Link>
 
             <Link
-              href="/login?tab=pilgrim"
+              href="/pilgrim"
               data-testid="link-pilgrim-entry"
               className="group flex items-center gap-3 px-7 py-3.5 bg-white/15 backdrop-blur-sm text-white font-bold rounded-2xl border border-white/30 hover:bg-white/25 hover:-translate-y-0.5 transition-all duration-300"
             >

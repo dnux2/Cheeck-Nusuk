@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Save, CheckCircle2, Star, Lock, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
-import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -75,18 +74,17 @@ const STAGES = [
 
 export function PilgrimHajjNotesPage() {
   const { lang, isRTL } = useLanguage();
-  const { user } = useAuth();
+
   const { toast } = useToast();
   const ar = lang === "ar";
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
-  const pilgrimId = user?.pilgrimId ?? 0;
+  const pilgrimId = 1;
 
   const { data: notes = [] } = useQuery<HajjNote[]>({
     queryKey: ["/api/pilgrims", pilgrimId, "hajj-notes"],
-    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}/hajj-notes`, { credentials: "include" }).then(r => r.json()),
-    enabled: pilgrimId > 0,
+    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}/hajj-notes`).then(r => r.json()),
   });
 
   const noteMap: Record<string, string> = {};

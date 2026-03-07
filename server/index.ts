@@ -1,39 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import session from "express-session";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-
-declare module "express-session" {
-  interface SessionData {
-    userId: number;
-    role: string;
-    name: string;
-    pilgrimId: number | null;
-  }
-}
 
 const app = express();
 const httpServer = createServer(app);
 
 app.use(cors({ credentials: true, origin: true }));
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "nusuk-fallback-secret-change-in-production",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax",
-    },
-  })
-);
 
 declare module "http" {
   interface IncomingMessage {

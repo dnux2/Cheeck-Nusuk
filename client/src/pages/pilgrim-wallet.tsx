@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, Heart, Phone, Edit3, CheckCircle2, AlertCircle, Clock, User } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
-import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,17 +18,16 @@ const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 export function PilgrimWalletPage() {
   const { lang, isRTL } = useLanguage();
-  const { user } = useAuth();
+
   const { toast } = useToast();
   const ar = lang === "ar";
   const [editOpen, setEditOpen] = useState(false);
 
-  const pilgrimId = user?.pilgrimId ?? 0;
+  const pilgrimId = 1;
 
   const { data: pilgrim, isLoading } = useQuery<Pilgrim>({
     queryKey: ["/api/pilgrims", pilgrimId],
-    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}`, { credentials: "include" }).then(r => r.json()),
-    enabled: pilgrimId > 0,
+    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}`).then(r => r.json()),
   });
 
   const [form, setForm] = useState({

@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Map, MessageSquare, Languages, BookOpen, Star, Droplets, Clock, CheckCircle2, ChevronRight, Stethoscope, UserSearch, Shield, X, MapPin, BatteryLow, Activity, Zap } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
-import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -69,20 +68,19 @@ const EMERGENCY_TYPES: { type: EmergencyType; ar: string; en: string; icon: Reac
 
 export function PilgrimHomePage() {
   const { lang, isRTL } = useLanguage();
-  const { user } = useAuth();
+
   const { toast } = useToast();
   const ar = lang === "ar";
   const [sosSent, setSosSent] = useState(false);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [selectedType, setSelectedType] = useState<EmergencyType | null>(null);
 
-  const pilgrimId = user?.pilgrimId ?? 0;
-  const LOC_QUEUE_KEY = `loc_queue_pilgrim_${pilgrimId}`;
+  const pilgrimId = 1;
+  const LOC_QUEUE_KEY = "loc_queue_pilgrim_1";
 
   const { data: pilgrim } = useQuery<Pilgrim>({
     queryKey: ["/api/pilgrims", pilgrimId],
-    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}`, { credentials: "include" }).then(r => r.json()),
-    enabled: pilgrimId > 0,
+    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}`).then(r => r.json()),
   });
 
   const [isSharing, setIsSharing] = useState(false);

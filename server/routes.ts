@@ -5,22 +5,10 @@ import { api } from "@shared/routes";
 import { insertChatMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import OpenAI from "openai";
-import bcrypt from "bcrypt";
-import rateLimit from "express-rate-limit";
-import { requireAuth, requireRole } from "./auth";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
-
-// Login rate limiter: max 5 attempts per IP per 15 minutes
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many login attempts. Please try again in 15 minutes." },
 });
 
 // ── Mecca context helper ──────────────────────────────────────────────────────
@@ -78,11 +66,13 @@ async function getMeccaContext() {
 
     prayerTimesStr = prayers.map(p => `${p}: ${timings[p]}`).join(", ");
   } catch {
+    // Fallback: estimate season from Gregorian date
     const month = meccaNow.getUTCMonth() + 1;
     const day = meccaNow.getUTCDate();
+    // Ramadan 1447 ≈ Feb 18 – Mar 18, 2026
     const year = meccaNow.getUTCFullYear();
     if (year === 2026 && ((month === 2 && day >= 18) || (month === 3 && day <= 18))) {
-      islamicMonth = 9;
+      islamicMonth = 9; // Ramadan
       islamicDay = month === 2 ? day - 17 : day + 11;
       hijriDate = `${islamicDay} Ramadan 1447 AH`;
       hijriDateAr = `${islamicDay} رمضان 1447 هـ`;
@@ -113,91 +103,23 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-
-  // ── Auth Routes ──────────────────────────────────────────────────────────────
-
-  // POST /api/auth/login — rate limited
-  app.post("/api/auth/login", loginLimiter, async (req, res) => {
-    try {
-      const { username, password } = z.object({
-        username: z.string().min(1),
-        password: z.string().min(1),
-      }).parse(req.body);
-
-      const user = await storage.findUserByUsername(username.toUpperCase());
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      const valid = await bcrypt.compare(password, user.passwordHash);
-      if (!valid) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      req.session.userId = user.id;
-      req.session.role = user.role;
-      req.session.name = user.name;
-      req.session.pilgrimId = user.pilgrimId ?? null;
-
-      res.json({
-        userId: user.id,
-        role: user.role,
-        name: user.name,
-        pilgrimId: user.pilgrimId ?? null,
-      });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-      throw err;
-    }
-  });
-
-  // GET /api/auth/me — returns current session user
-  app.get("/api/auth/me", (req, res) => {
-    if (!req.session.userId) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    res.json({
-      userId: req.session.userId,
-      role: req.session.role,
-      name: req.session.name,
-      pilgrimId: req.session.pilgrimId ?? null,
-    });
-  });
-
-  // POST /api/auth/logout
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.json({ message: "Logged out" });
-    });
-  });
-
-  // ── Pilgrims ─────────────────────────────────────────────────────────────────
-
-  // Supervisor: list all pilgrims
-  app.get(api.pilgrims.list.path, requireRole("supervisor"), async (req, res) => {
+  // Pilgrims
+  app.get(api.pilgrims.list.path, async (req, res) => {
     const limit = req.query.limit ? Number(req.query.limit) : 100;
     const offset = req.query.offset ? Number(req.query.offset) : 0;
     const pilgrims = await storage.getPilgrims({ limit, offset });
     res.json(pilgrims);
   });
 
-  // Get single pilgrim — pilgrim can only access own record
-  app.get(api.pilgrims.get.path, requireAuth, async (req, res) => {
-    const requestedId = Number(req.params.id);
-    if (req.session.role === "pilgrim" && req.session.pilgrimId !== requestedId) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    const pilgrim = await storage.getPilgrim(requestedId);
+  app.get(api.pilgrims.get.path, async (req, res) => {
+    const pilgrim = await storage.getPilgrim(Number(req.params.id));
     if (!pilgrim) {
       return res.status(404).json({ message: "Pilgrim not found" });
     }
     res.json(pilgrim);
   });
 
-  // Create pilgrim — supervisors only
-  app.post(api.pilgrims.create.path, requireRole("supervisor"), async (req, res) => {
+  app.post(api.pilgrims.create.path, async (req, res) => {
     try {
       const input = api.pilgrims.create.input.parse(req.body);
       const pilgrim = await storage.createPilgrim(input);
@@ -213,16 +135,11 @@ export async function registerRoutes(
     }
   });
 
-  // Update location — pilgrim can only update own location
-  app.patch(api.pilgrims.updateLocation.path, requireAuth, async (req, res) => {
+  app.patch(api.pilgrims.updateLocation.path, async (req, res) => {
     try {
-      const requestedId = Number(req.params.id);
-      if (req.session.role === "pilgrim" && req.session.pilgrimId !== requestedId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
       const input = api.pilgrims.updateLocation.input.parse(req.body);
       const pilgrim = await storage.updatePilgrimLocation(
-        requestedId,
+        Number(req.params.id),
         input.locationLat,
         input.locationLng
       );
@@ -232,13 +149,8 @@ export async function registerRoutes(
     }
   });
 
-  // Update health — pilgrim can only update own health
-  app.patch("/api/pilgrims/:id/health", requireAuth, async (req, res) => {
+  app.patch("/api/pilgrims/:id/health", async (req, res) => {
     try {
-      const requestedId = Number(req.params.id);
-      if (req.session.role === "pilgrim" && req.session.pilgrimId !== requestedId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
       const healthSchema = z.object({
         bloodType: z.string().optional(),
         allergies: z.string().optional(),
@@ -247,7 +159,7 @@ export async function registerRoutes(
         healthStatus: z.enum(["Good", "Stable", "NeedsAttention"]).optional(),
       });
       const input = healthSchema.parse(req.body);
-      const pilgrim = await storage.updatePilgrimHealth(requestedId, input);
+      const pilgrim = await storage.updatePilgrimHealth(Number(req.params.id), input);
       res.json(pilgrim);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -257,26 +169,17 @@ export async function registerRoutes(
     }
   });
 
-  // ── Hajj Notes ───────────────────────────────────────────────────────────────
-
-  app.get("/api/pilgrims/:id/hajj-notes", requireAuth, async (req, res) => {
-    const requestedId = Number(req.params.id);
-    if (req.session.role === "pilgrim" && req.session.pilgrimId !== requestedId) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-    const notes = await storage.getHajjNotes(requestedId);
+  // Hajj Notes
+  app.get("/api/pilgrims/:id/hajj-notes", async (req, res) => {
+    const notes = await storage.getHajjNotes(Number(req.params.id));
     res.json(notes);
   });
 
-  app.patch("/api/pilgrims/:id/hajj-notes/:stageKey", requireAuth, async (req, res) => {
+  app.patch("/api/pilgrims/:id/hajj-notes/:stageKey", async (req, res) => {
     try {
-      const requestedId = Number(req.params.id);
-      if (req.session.role === "pilgrim" && req.session.pilgrimId !== requestedId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
       const schema = z.object({ note: z.string() });
       const { note } = schema.parse(req.body);
-      const result = await storage.upsertHajjNote(requestedId, req.params.stageKey, note);
+      const result = await storage.upsertHajjNote(Number(req.params.id), req.params.stageKey, note);
       res.json(result);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -284,20 +187,15 @@ export async function registerRoutes(
     }
   });
 
-  // ── Emergencies ──────────────────────────────────────────────────────────────
-
-  app.get(api.emergencies.list.path, requireRole("supervisor"), async (_req, res) => {
+  // Emergencies
+  app.get(api.emergencies.list.path, async (req, res) => {
     const emergencies = await storage.getEmergencies();
     res.json(emergencies);
   });
 
-  app.post(api.emergencies.create.path, requireAuth, async (req, res) => {
+  app.post(api.emergencies.create.path, async (req, res) => {
     try {
       const input = api.emergencies.create.input.parse(req.body);
-      // Pilgrims can only create emergencies for themselves
-      if (req.session.role === "pilgrim") {
-        input.pilgrimId = req.session.pilgrimId ?? input.pilgrimId;
-      }
       const emergency = await storage.createEmergency(input);
       res.status(201).json(emergency);
     } catch (err) {
@@ -311,7 +209,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch(api.emergencies.resolve.path, requireRole("supervisor"), async (req, res) => {
+  app.patch(api.emergencies.resolve.path, async (req, res) => {
     try {
       const resolved = await storage.resolveEmergency(Number(req.params.id));
       res.json(resolved);
@@ -320,14 +218,13 @@ export async function registerRoutes(
     }
   });
 
-  // ── Alerts ───────────────────────────────────────────────────────────────────
-
-  app.get(api.alerts.list.path, requireAuth, async (_req, res) => {
+  // Alerts
+  app.get(api.alerts.list.path, async (req, res) => {
     const alerts = await storage.getAlerts();
     res.json(alerts);
   });
 
-  app.post(api.alerts.create.path, requireRole("supervisor"), async (req, res) => {
+  app.post(api.alerts.create.path, async (req, res) => {
     try {
       const input = api.alerts.create.input.parse(req.body);
       const alert = await storage.createAlert(input);
@@ -343,14 +240,15 @@ export async function registerRoutes(
     }
   });
 
-  // ── AI Translator ────────────────────────────────────────────────────────────
-
-  app.post(api.ai.translate.path, requireAuth, async (req, res) => {
+  // AI Translator
+  app.post(api.ai.translate.path, async (req, res) => {
     try {
       const { text, targetLanguage } = api.ai.translate.input.parse(req.body);
+
       if (!text.trim()) {
         return res.status(400).json({ message: "Text cannot be empty" });
       }
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -358,6 +256,7 @@ export async function registerRoutes(
           { role: "user", content: text }
         ],
       });
+
       const translatedText = response.choices[0]?.message?.content || "Translation failed";
       res.json({ translatedText });
     } catch (err) {
@@ -371,14 +270,20 @@ export async function registerRoutes(
     }
   });
 
-  // ── AI Text-to-Speech ─────────────────────────────────────────────────────
-
-  app.post("/api/ai/tts", requireAuth, async (req, res) => {
+  // AI Text-to-Speech
+  app.post("/api/ai/tts", async (req, res) => {
     try {
       const { text, language } = z.object({ text: z.string().min(1), language: z.string().default("en-US") }).parse(req.body);
       const voiceMap: Record<string, "alloy" | "nova" | "shimmer" | "echo" | "fable" | "onyx"> = {
-        Arabic: "nova", English: "alloy", Urdu: "nova", French: "shimmer",
-        Malay: "alloy", Indonesian: "alloy", Turkish: "echo", Bengali: "nova", Pashto: "nova",
+        Arabic: "nova",
+        English: "alloy",
+        Urdu: "nova",
+        French: "shimmer",
+        Malay: "alloy",
+        Indonesian: "alloy",
+        Turkish: "echo",
+        Bengali: "nova",
+        Pashto: "nova",
       };
       const voice = voiceMap[language] ?? "alloy";
       const mp3Response = await openai.audio.speech.create({
@@ -397,28 +302,16 @@ export async function registerRoutes(
     }
   });
 
-  // ── Chat Messages ─────────────────────────────────────────────────────────
-
-  app.get("/api/chat/messages", requireAuth, async (req, res) => {
-    // Pilgrims only see messages for themselves; supervisors see all or filter
-    let pilgrimId: number | undefined;
-    if (req.session.role === "pilgrim") {
-      pilgrimId = req.session.pilgrimId ?? undefined;
-    } else {
-      pilgrimId = req.query.pilgrimId ? Number(req.query.pilgrimId) : undefined;
-    }
+  // Chat Messages
+  app.get("/api/chat/messages", async (req, res) => {
+    const pilgrimId = req.query.pilgrimId ? Number(req.query.pilgrimId) : undefined;
     const messages = await storage.getChatMessages(pilgrimId);
     res.json(messages);
   });
 
-  app.post("/api/chat/messages", requireAuth, async (req, res) => {
+  app.post("/api/chat/messages", async (req, res) => {
     try {
       const input = insertChatMessageSchema.parse(req.body);
-      // Pilgrims can only send messages as themselves
-      if (req.session.role === "pilgrim") {
-        input.pilgrimId = req.session.pilgrimId ?? input.pilgrimId;
-        input.senderRole = "pilgrim";
-      }
       const msg = await storage.createChatMessage(input);
       res.status(201).json(msg);
     } catch (err) {
@@ -429,10 +322,10 @@ export async function registerRoutes(
     }
   });
 
-  // ── AI Crowd Assessment ──────────────────────────────────────────────────
-
-  app.post("/api/crowd/assess", requireAuth, async (_req, res) => {
+  // ── AI Crowd Assessment endpoint ─────────────────────────────────────────
+  app.post("/api/crowd/assess", async (_req, res) => {
     try {
+      // Serve from cache if fresh
       if (crowdCache && Date.now() - crowdCache.ts < CROWD_CACHE_TTL) {
         return res.json({ ...crowdCache.data, cached: true });
       }
@@ -536,9 +429,8 @@ Status values: "empty" (0-4%), "normal" (5-49%), "busy" (50-79%), "warning" (80-
     }
   });
 
-  // ── Crowd Analysis ────────────────────────────────────────────────────────
-
-  app.post("/api/crowd-analysis", requireAuth, async (req, res) => {
+  // Crowd analysis endpoint — uses OpenAI to analyze crowd & suggest alternatives
+  app.post("/api/crowd-analysis", async (req, res) => {
     try {
       const { facility, alternatives, crowdScore, lang, hour } = req.body as {
         facility: { nameAr: string; nameEn: string; type: string };
@@ -579,7 +471,6 @@ Write a brief analysis (3-4 sentences) explaining why it's crowded now, then rec
 }
 
 async function seedDatabase() {
-  // ── Pilgrims seed ────────────────────────────────────────────────────────────
   const existingPilgrims = await storage.getPilgrims({ limit: 100 });
   if (existingPilgrims.length < 50) {
     const seedPilgrims = [
@@ -654,7 +545,6 @@ async function seedDatabase() {
     }
   }
 
-  // ── Alerts seed ──────────────────────────────────────────────────────────────
   const existingAlerts = await storage.getAlerts();
   if (existingAlerts.length === 0) {
     await storage.createAlert({
@@ -664,6 +554,7 @@ async function seedDatabase() {
       locationLng: 39.8262,
       status: "Active",
     });
+
     await storage.createAlert({
       type: "Unauthorized",
       message: "Face detection triggered: Potential unauthorized pilgrim detected in sector 4.",
@@ -673,7 +564,6 @@ async function seedDatabase() {
     });
   }
 
-  // ── Emergency seed ───────────────────────────────────────────────────────────
   const existingEmergencies = await storage.getEmergencies();
   if (existingEmergencies.length === 0) {
     await storage.createEmergency({
@@ -683,47 +573,5 @@ async function seedDatabase() {
       locationLat: 21.4230,
       locationLng: 39.8250,
     });
-  }
-
-  // ── Users seed ───────────────────────────────────────────────────────────────
-  const userCount = await storage.getUserCount();
-  if (userCount === 0) {
-    console.log("[seed] Seeding users (this may take a moment for bcrypt hashing)...");
-
-    // Supervisor accounts
-    const supervisorSeeds = [
-      { username: "ADMIN", password: "nusuk2025", name: "Admin Supervisor" },
-      { username: "SUPERVISOR1", password: "hajj1446", name: "Hajj Supervisor" },
-    ];
-    for (const sup of supervisorSeeds) {
-      const passwordHash = await bcrypt.hash(sup.password, 10);
-      await storage.createUser({
-        username: sup.username,
-        passwordHash,
-        role: "supervisor",
-        name: sup.name,
-        pilgrimId: null,
-      });
-    }
-
-    // Pilgrim accounts — passport number as username, last 4 of phone as PIN
-    const allPilgrims = await storage.getPilgrims({ limit: 200 });
-    for (const pilgrim of allPilgrims) {
-      const pin = pilgrim.phone.slice(-4);
-      const passwordHash = await bcrypt.hash(pin, 10);
-      try {
-        await storage.createUser({
-          username: pilgrim.passportNumber.toUpperCase(),
-          passwordHash,
-          role: "pilgrim",
-          name: pilgrim.name,
-          pilgrimId: pilgrim.id,
-        });
-      } catch {
-        // skip duplicates
-      }
-    }
-
-    console.log("[seed] Users seeded successfully.");
   }
 }
