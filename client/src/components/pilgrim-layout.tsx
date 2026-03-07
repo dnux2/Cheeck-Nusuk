@@ -80,7 +80,11 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           );
         })}
 
-        {/* Logout — right below المترجم */}
+      </nav>
+
+      {/* Bottom section */}
+      <div className="px-4 pb-6 border-t border-border pt-4 flex flex-col gap-2">
+        {/* Logout */}
         <button
           onClick={() => {
             setMobileOpen(false);
@@ -95,10 +99,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           <LogOut className="w-5 h-5 flex-shrink-0" />
           <span>{ar ? "تسجيل الخروج" : "Logout"}</span>
         </button>
-      </nav>
 
-      {/* Bottom section */}
-      <div className="px-4 pb-6 border-t border-border pt-4">
         {/* SOS */}
         <Link href="/pilgrim">
           <button
