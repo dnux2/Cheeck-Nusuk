@@ -267,29 +267,63 @@ function FacilitySheet({
             </span>
           ))}
         </div>
-        {/* List */}
+        {/* Nearest — prominent quick-navigate card */}
+        {facilities[0] && (() => {
+          const { f, distM, cs } = facilities[0];
+          const cColor = crowdColor(cs);
+          const cLabelAr = cs >= 75 ? "زحام شديد" : cs >= 50 ? "زحام متوسط" : "هادئ";
+          const cLabelEn = cs >= 75 ? "Heavy" : cs >= 50 ? "Moderate" : "Calm";
+          return (
+            <div className="px-4 py-3 flex-shrink-0 border-b-2" style={{ borderColor: cfg.colorHex + "33", background: cfg.lightHex }}>
+              <div className="flex items-center gap-1 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-wide" style={{ color: cfg.colorHex }}>
+                  {ar ? "⚡ الأقرب إليك" : "⚡ Nearest to you"}
+                </span>
+                <div className="flex-1 h-px" style={{ background: cfg.colorHex + "33" }} />
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-gray-900 text-[14px] truncate">{ar ? f.nameAr : f.nameEn}</div>
+                  {(ar ? f.detailAr : f.detailEn) && (
+                    <div className="text-[11px] text-gray-500 truncate mt-0.5">{ar ? f.detailAr : f.detailEn}</div>
+                  )}
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[11px] text-gray-600 font-semibold">📍 {fmtDist(distM, ar)}</span>
+                    <span className="text-[11px] text-gray-500">🕐 {fmtTime(distM / 1.2, ar)}</span>
+                    <span className="text-[10px] font-semibold" style={{ color: cColor }}>● {ar ? cLabelAr : cLabelEn}</span>
+                  </div>
+                </div>
+                <button onClick={() => onNavigate(f)} data-testid={`nav-btn-nearest-${f.id}`}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-2xl font-bold text-xs"
+                  style={{ background: cfg.colorHex, color: "white" }}>
+                  <Navigation className="w-4 h-4" />
+                  {ar ? "وجّهني" : "Go"}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Full list */}
         <div className="overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
+          <div className="px-4 pt-2 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+            {ar ? "كل الخيارات" : "All options"}
+          </div>
           {facilities.map(({ f, distM, cs }, idx) => {
             const cColor = crowdColor(cs);
-            const isSelected = f.id === selectedId;
             const cLabelAr = cs >= 75 ? "زحام شديد" : cs >= 50 ? "زحام متوسط" : "هادئ";
             const cLabelEn = cs >= 75 ? "Heavy" : cs >= 50 ? "Moderate" : "Calm";
             return (
               <div key={f.id}
                 className="px-4 py-3 flex items-center gap-3 border-b border-gray-50 transition-colors"
-                style={{ background: isSelected ? cfg.lightHex + "88" : "white" }}
+                style={{ background: "white" }}
                 data-testid={`facility-item-${f.id}`}>
-                {/* Rank badge */}
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{ background: idx === 0 ? cfg.colorHex : "#f0f0f0", color: idx === 0 ? "white" : "#888" }}>
                   {idx + 1}
                 </div>
-                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="font-semibold text-[13px] text-gray-900 truncate">{ar ? f.nameAr : f.nameEn}</span>
-                    {isSelected && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: cfg.colorHex, color: "white" }}>{ar ? "اخترته" : "selected"}</span>}
-                  </div>
+                  <div className="font-semibold text-[13px] text-gray-900 truncate">{ar ? f.nameAr : f.nameEn}</div>
                   {(ar ? f.detailAr : f.detailEn) && (
                     <div className="text-[11px] text-gray-400 truncate mb-1">{ar ? f.detailAr : f.detailEn}</div>
                   )}
@@ -298,12 +332,10 @@ function FacilitySheet({
                     <span className="text-[11px] text-gray-500">🕐 {fmtTime(distM / 1.2, ar)}</span>
                     <span className="text-[10px] font-semibold" style={{ color: cColor }}>● {ar ? cLabelAr : cLabelEn} {cs}%</span>
                   </div>
-                  {/* Crowd bar */}
                   <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 overflow-hidden w-full">
                     <div style={{ width: `${cs}%`, height: "100%", background: cColor, borderRadius: 4, transition: "width 0.5s" }} />
                   </div>
                 </div>
-                {/* Navigate button */}
                 <button onClick={() => onNavigate(f)} data-testid={`nav-btn-${f.id}`}
                   className="flex-shrink-0 w-9 h-9 rounded-2xl flex items-center justify-center transition-colors"
                   style={{ background: "#0E4D41", color: "white" }}>
@@ -887,21 +919,41 @@ export function PilgrimGuideMap() {
 
       {/* Filter bar — hide during nav */}
       {!navRoute && (
-        <div className="px-4 py-3 bg-card border-b border-border overflow-x-auto flex-shrink-0">
+        <div className="px-3 py-2.5 bg-card border-b border-border overflow-x-auto flex-shrink-0">
           <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`} style={{ minWidth: "max-content" }}>
             {(Object.entries(TYPE_CONFIG) as [FacilityType, typeof TYPE_CONFIG[FacilityType]][]).map(([type, cfg]) => {
-              const active = activeFilters.has(type);
+              const sheetOpen = facilitySheet?.type === type;
+              const nearest = FACILITIES.filter(f => f.type === type)
+                .sort((a, b) => haversineM(myLat, myLng, a.lat, a.lng) - haversineM(myLat, myLng, b.lat, b.lng))[0];
               return (
-                <button key={type} onClick={() => toggleFilter(type)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${active ? "" : "bg-background border-border text-muted-foreground"}`}
-                  style={active ? { background: cfg.lightHex, color: cfg.colorHex, borderColor: cfg.colorHex + "55" } : {}}
-                  data-testid={`filter-${type}`}>
-                  <span>{cfg.emoji}</span>
-                  <span>{ar ? cfg.labelAr : cfg.labelEn}</span>
+                <button
+                  key={type}
+                  data-testid={`filter-${type}`}
+                  onClick={() => {
+                    if (sheetOpen) { setFacilitySheet(null); return; }
+                    if (!activeFilters.has(type)) toggleFilter(type);
+                    if (nearest) setFacilitySheet({ type, selectedId: nearest.id });
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all border shadow-sm ${sheetOpen ? "shadow-md scale-95" : ""}`}
+                  style={sheetOpen
+                    ? { background: cfg.colorHex, color: "#fff", borderColor: cfg.colorHex }
+                    : { background: cfg.lightHex, color: cfg.colorHex, borderColor: cfg.colorHex + "55" }}>
+                  <span className="text-sm">{cfg.emoji}</span>
+                  <div className="flex flex-col items-start leading-tight">
+                    <span>{ar ? cfg.labelAr : cfg.labelEn}</span>
+                    {nearest && (
+                      <span className="font-normal opacity-80" style={{ fontSize: 9 }}>
+                        {fmtDist(haversineM(myLat, myLng, nearest.lat, nearest.lng), ar)}
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })}
           </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
+            {ar ? "اضغط على النوع لرؤية الخيارات الأقرب إليك" : "Tap a type to see nearby options"}
+          </p>
         </div>
       )}
 
