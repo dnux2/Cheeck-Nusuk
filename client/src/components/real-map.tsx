@@ -8,6 +8,42 @@ import { type Pilgrim } from "@shared/schema";
 import { useLanguage } from "@/contexts/language-context";
 import { useToast } from "@/hooks/use-toast";
 
+function DisableParentScroll() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const locked: Array<{ el: HTMLElement; oy: string }> = [];
+
+    const lock = () => {
+      if (locked.length === 0) {
+        let el = container.parentElement;
+        while (el && el !== document.body) {
+          const cs = getComputedStyle(el);
+          if (cs.overflowY === "auto" || cs.overflowY === "scroll" || cs.overflow === "auto" || cs.overflow === "scroll") {
+            locked.push({ el, oy: el.style.overflowY });
+            el.style.overflowY = "hidden";
+          }
+          el = el.parentElement;
+        }
+      }
+    };
+
+    const unlock = () => {
+      locked.forEach(({ el, oy }) => { el.style.overflowY = oy; });
+      locked.length = 0;
+    };
+
+    container.addEventListener("mousedown", lock);
+    document.addEventListener("mouseup", unlock);
+    return () => {
+      container.removeEventListener("mousedown", lock);
+      document.removeEventListener("mouseup", unlock);
+      unlock();
+    };
+  }, [map]);
+  return null;
+}
+
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -531,6 +567,7 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           subdomains="abcd" maxZoom={20}
         />
+        <DisableParentScroll />
         <ZoomControls />
         <FitBounds />
         {highlightedPilgrim?.locationLat && highlightedPilgrim?.locationLng && !navRoute && (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, useMapEvents } from "react-leaflet";
+
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useLanguage } from "@/contexts/language-context";
@@ -14,6 +15,39 @@ L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
+
+function DisableParentScroll() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const locked: Array<{ el: HTMLElement; oy: string }> = [];
+    const lock = () => {
+      if (locked.length === 0) {
+        let el = container.parentElement;
+        while (el && el !== document.body) {
+          const cs = getComputedStyle(el);
+          if (cs.overflowY === "auto" || cs.overflowY === "scroll" || cs.overflow === "auto" || cs.overflow === "scroll") {
+            locked.push({ el, oy: el.style.overflowY });
+            el.style.overflowY = "hidden";
+          }
+          el = el.parentElement;
+        }
+      }
+    };
+    const unlock = () => {
+      locked.forEach(({ el, oy }) => { el.style.overflowY = oy; });
+      locked.length = 0;
+    };
+    container.addEventListener("mousedown", lock);
+    document.addEventListener("mouseup", unlock);
+    return () => {
+      container.removeEventListener("mousedown", lock);
+      document.removeEventListener("mouseup", unlock);
+      unlock();
+    };
+  }, [map]);
+  return null;
+}
 
 type FacilityType = "hospital" | "water" | "mosque" | "bathroom" | "transport";
 
@@ -1095,6 +1129,7 @@ export function PilgrimGuideMap() {
           </div>
         )}
         <MapContainer center={[fallbackLat, fallbackLng]} zoom={14} dragging={true} scrollWheelZoom={true} doubleClickZoom={true} touchZoom={true} style={{ width: "100%", height: "100%", cursor: pickingOrigin ? "crosshair" : undefined }} zoomControl={false}>
+          <DisableParentScroll />
           <TileLayer attribution='© <a href="https://carto.com">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
 
           <MapClickHandler picking={pickingOrigin} onPick={(lat, lng) => {
