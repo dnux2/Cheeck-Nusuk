@@ -131,6 +131,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               localStorage.removeItem("isLoggedIn");
               localStorage.removeItem("role");
               localStorage.removeItem("username");
+              localStorage.removeItem("supervisorNameAr");
+              localStorage.removeItem("supervisorNameEn");
               window.location.replace("/");
             }}
             data-testid="btn-logout-supervisor"
@@ -202,15 +204,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </button>
 
             {/* Admin info + avatar */}
-            <div className={`hidden sm:flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <div className={isRTL ? "text-right" : "text-right"}>
-                <p className="text-xs font-bold text-foreground leading-tight">{t("adminSupervisor")}</p>
-                <p className="text-[10px] text-muted-foreground">{t("sector")}</p>
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-bold shadow-sm flex-shrink-0 text-xs">
-              AS
-            </div>
+            {(() => {
+              const nameAr = localStorage.getItem("supervisorNameAr") || t("adminSupervisor");
+              const nameEn = localStorage.getItem("supervisorNameEn") || t("adminSupervisor");
+              const displayName = lang === "ar" ? nameAr : nameEn;
+              const initials = nameEn.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+              return (
+                <>
+                  <div className={`hidden sm:flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <div className={isRTL ? "text-right" : "text-right"}>
+                      <p className="text-xs font-bold text-foreground leading-tight">{displayName}</p>
+                      <p className="text-[10px] text-muted-foreground">{t("sector")}</p>
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-bold shadow-sm flex-shrink-0 text-xs">
+                    {initials}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </header>
 
