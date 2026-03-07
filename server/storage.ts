@@ -5,6 +5,7 @@ import {
   alerts,
   chatMessages,
   hajjNotes,
+  pilgrimPhotos,
   type Pilgrim,
   type InsertPilgrim,
   type Emergency,
@@ -14,6 +15,8 @@ import {
   type ChatMessage,
   type InsertChatMessage,
   type HajjNote,
+  type PilgrimPhoto,
+  type InsertPilgrimPhoto,
 } from "@shared/schema";
 import { eq, or, isNull, and } from "drizzle-orm";
 
@@ -43,6 +46,11 @@ export interface IStorage {
   // Hajj Notes
   getHajjNotes(pilgrimId: number): Promise<HajjNote[]>;
   upsertHajjNote(pilgrimId: number, stageKey: string, note: string): Promise<HajjNote>;
+
+  // Photos
+  getPilgrimPhotos(pilgrimId: number, stageKey?: string): Promise<PilgrimPhoto[]>;
+  createPilgrimPhoto(photo: InsertPilgrimPhoto): Promise<PilgrimPhoto>;
+  deletePilgrimPhoto(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -176,6 +184,23 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  async getPilgrimPhotos(pilgrimId: number, stageKey?: string): Promise<PilgrimPhoto[]> {
+    if (stageKey) {
+      return await db.select().from(pilgrimPhotos)
+        .where(and(eq(pilgrimPhotos.pilgrimId, pilgrimId), eq(pilgrimPhotos.stageKey, stageKey)));
+    }
+    return await db.select().from(pilgrimPhotos).where(eq(pilgrimPhotos.pilgrimId, pilgrimId));
+  }
+
+  async createPilgrimPhoto(photo: InsertPilgrimPhoto): Promise<PilgrimPhoto> {
+    const [created] = await db.insert(pilgrimPhotos).values(photo).returning();
+    return created;
+  }
+
+  async deletePilgrimPhoto(id: number): Promise<void> {
+    await db.delete(pilgrimPhotos).where(eq(pilgrimPhotos.id, id));
   }
 }
 

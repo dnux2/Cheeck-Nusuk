@@ -15,7 +15,7 @@ The platform targets Hajj supervisors and administrators who need a unified cont
   - `/pilgrim` — Home: greeting banner, SOS button, landing-page-style action cards, Hajj journey steps, prayer times
   - `/pilgrim/map` — Guide map: Leaflet with 24 real facility markers (hospitals, water, mosques, bathrooms, transport) + route guidance
   - `/pilgrim/wallet` — Digital wallet: permit card + health data (blood type, allergies, conditions) + editable form
-  - `/pilgrim/hajj-notes` — Hajj Journal: write notes per Hajj stage (7 stages). Saved to `hajj_notes` DB table. PATCH/GET API.
+  - `/pilgrim/hajj-notes` — Hajj Journal: write notes + upload/compress/tag photos per Hajj stage (7 stages). Notes saved to `hajj_notes`, photos (base64 JPEG compressed to ≤350KB) saved to `pilgrim_photos` DB table. Full lightbox viewer with nav, thumbnail strip, delete. API: GET/PATCH notes, GET/POST/DELETE photos.
   - `/pilgrim/chat` — Supervisor chat with message history
   - `/pilgrim/translator` — AI translator with voice input, 8 languages
 
@@ -75,6 +75,7 @@ Preferred communication style: Simple, everyday language.
   - `emergencies` – Links to pilgrim, stores type (`Medical`/`Lost`/`Security`), status, GPS, timestamp.
   - `alerts` – System alerts: type (`Unauthorized`/`Crowd Density`/`Weather`), message, GPS, status.
   - `hajj_notes` – Pilgrim journal entries: links to pilgrim, stageKey (tarwiyah/arafat/muzdalifah/eid/tashreeq_11/tashreeq_12/farewell), note text, updatedAt. Upserted on save.
+  - `pilgrim_photos` – Pilgrim stage photos: links to pilgrim + stageKey, stores base64 JPEG (photoData), caption, tags (text[]), timestamp. API: GET/POST /api/pilgrims/:id/photos, DELETE /api/photos/:id.
   - `conversations` + `messages` – AI chat history (defined in `shared/models/chat.ts`, used by Replit integration chat storage).
 - **Migrations**: Drizzle Kit (`drizzle-kit push`) reads `shared/schema.ts` and pushes to PostgreSQL.
 

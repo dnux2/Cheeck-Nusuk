@@ -221,6 +221,39 @@ export async function registerRoutes(
     }
   });
 
+  // Pilgrim Photos
+  app.get("/api/pilgrims/:id/photos", async (req, res) => {
+    const pilgrimId = Number(req.params.id);
+    const stageKey = req.query.stageKey as string | undefined;
+    const photos = await storage.getPilgrimPhotos(pilgrimId, stageKey);
+    res.json(photos);
+  });
+
+  app.post("/api/pilgrims/:id/photos", async (req, res) => {
+    try {
+      const schema = z.object({
+        stageKey: z.string(),
+        photoData: z.string(),
+        caption: z.string().optional().default(""),
+        tags: z.array(z.string()).optional().default([]),
+      });
+      const input = schema.parse(req.body);
+      const photo = await storage.createPilgrimPhoto({
+        pilgrimId: Number(req.params.id),
+        ...input,
+      });
+      res.status(201).json(photo);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Failed to save photo" });
+    }
+  });
+
+  app.delete("/api/photos/:id", async (req, res) => {
+    await storage.deletePilgrimPhoto(Number(req.params.id));
+    res.status(204).end();
+  });
+
   // Emergencies
   app.get(api.emergencies.list.path, async (req, res) => {
     const emergencies = await storage.getEmergencies();
