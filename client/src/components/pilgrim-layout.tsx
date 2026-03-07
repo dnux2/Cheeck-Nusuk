@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Map, Wallet, MessageSquare, Languages, AlertTriangle, X, Menu, LogOut, BookOpen } from "lucide-react";
+import { Home, Map, Wallet, MessageSquare, Languages, AlertTriangle, X, Menu, LogOut, BookOpen, Bell } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import logoImg from "@assets/WhatsApp_Image_2026-03-07_at_12.53.20_AM_1772834050515.jpeg";
 
@@ -50,7 +50,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold flex-shrink-0">أ</div>
           <div>
             <div className="font-bold text-sm">{ar ? "أحمد علي" : "Ahmed Ali"}</div>
-            <div className="text-xs text-primary-foreground/70">{ar ? "حملة التوحيد · مكة المكرمة" : "Al-Tawheed · Makkah"}</div>
+            <div className="text-primary-foreground/70 text-[10px]">{ar ? "حملة التوحيد · مكة المكرمة" : "Al-Tawheed · Makkah"}</div>
           </div>
         </div>
       </div>
@@ -85,21 +85,22 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
         <Link href="/pilgrim">
           <button
             onClick={() => setMobileOpen(false)}
-            className="w-full py-2.5 rounded-2xl bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm"
+            className="w-full py-2.5 rounded-2xl bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold text-sm flex flex-row items-center justify-center gap-2 transition-colors shadow-sm"
             data-testid="btn-sos-sidebar"
           >
-            <AlertTriangle className="w-4 h-4" />
-            {ar ? "🆘 طوارئ SOS" : "🆘 Emergency SOS"}
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {ar ? "طوارئ SOS" : "Emergency SOS"}
           </button>
         </Link>
+
         {/* Logout */}
-        <Link href="/">
+        <Link href="/" className="mt-1 block">
           <button
             onClick={() => setMobileOpen(false)}
-            className="w-full py-2 rounded-2xl text-destructive hover:bg-destructive/10 font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2 rounded-2xl text-destructive hover:bg-destructive/10 font-semibold text-sm flex flex-row items-center justify-center gap-2 transition-colors"
             data-testid="btn-logout-pilgrim"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 flex-shrink-0" />
             {ar ? "تسجيل الخروج" : "Logout"}
           </button>
         </Link>
@@ -173,10 +174,16 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
             CheckNusuk
           </Link>
 
-          {/* End: SOS */}
-          <Link href="/pilgrim" className="p-2 rounded-xl hover:bg-destructive/10 transition-colors" data-testid="btn-top-sos">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-          </Link>
+          {/* End: bell + SOS */}
+          <div className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <button className="relative p-1.5 rounded-lg hover:bg-secondary transition-colors" data-testid="btn-pilgrim-bell">
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
+            </button>
+            <Link href="/pilgrim" className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" data-testid="btn-top-sos">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </Link>
+          </div>
         </header>
 
         {/* Page content */}
