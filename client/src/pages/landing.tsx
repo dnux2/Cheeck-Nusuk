@@ -121,19 +121,6 @@ export function LandingPage() {
           </motion.div>
         </div>
 
-        {/* Scroll-down indicator */}
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1, duration: 0.8 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
-        >
-          <span className="text-white/50 text-xs">{ar ? "المزيد" : "More"}</span>
-          <div className="w-5 h-8 rounded-full border-2 border-white/30 flex items-start justify-center pt-1">
-            <motion.div
-              animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}
-              className="w-1 h-2 rounded-full bg-white/60"
-            />
-          </div>
-        </motion.div>
       </div>
       {/* ── Features Grid ── */}
       <main className="flex-1">
