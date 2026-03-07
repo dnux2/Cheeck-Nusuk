@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useLanguage } from "@/contexts/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { type Pilgrim } from "@shared/schema";
-import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw } from "lucide-react";
+import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw, LocateFixed, MousePointer2 } from "lucide-react";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -177,6 +177,27 @@ function maneuverToStep(type: string, modifier: string | undefined, name: string
 
 type GpsStatus = "idle" | "requesting" | "granted" | "denied";
 
+function makeCustomOriginIcon() {
+  return L.divIcon({
+    html: `<div style="display:flex;flex-direction:column;align-items:center">
+      <div style="width:36px;height:36px;background:#1A5C8A;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 10px rgba(26,92,138,0.5)">🚩</div>
+      <div style="width:3px;height:8px;background:#1A5C8A;margin-top:1px;border-radius:2px"></div>
+    </div>`,
+    className: "",
+    iconSize: [36, 47],
+    iconAnchor: [18, 47],
+  });
+}
+
+function MapClickHandler({ picking, onPick }: { picking: boolean; onPick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      if (picking) onPick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 function FitRoute({ coords }: { coords: [number, number][] }) {
   const map = useMap();
   useEffect(() => {
@@ -207,8 +228,15 @@ export function PilgrimGuideMap() {
   const [flyToGps, setFlyToGps] = useState(false);
   const watchIdRef = useRef<number | null>(null);
 
-  const myLat = gpsPos?.lat ?? fallbackLat;
-  const myLng = gpsPos?.lng ?? fallbackLng;
+  const [customOrigin, setCustomOrigin] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickingOrigin, setPickingOrigin] = useState(false);
+
+  const gpsLat = gpsPos?.lat ?? fallbackLat;
+  const gpsLng = gpsPos?.lng ?? fallbackLng;
+  const myLat = customOrigin?.lat ?? gpsLat;
+  const myLng = customOrigin?.lng ?? gpsLng;
+
+  const resetToGps = () => { setCustomOrigin(null); setPickingOrigin(false); };
 
   const requestGps = () => {
     if (!navigator.geolocation) { setGpsStatus("denied"); return; }
@@ -366,6 +394,49 @@ export function PilgrimGuideMap() {
         </div>
       )}
 
+      {/* Origin picker bar — always visible */}
+      <div className={`px-4 py-2 flex items-center justify-between gap-2 border-b flex-shrink-0 transition-colors ${pickingOrigin ? "border-blue-300 bg-blue-50" : "border-border bg-card"}`}>
+        <div className="flex items-center gap-2 min-w-0">
+          {pickingOrigin ? (
+            <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5 animate-pulse">
+              <MousePointer2 className="w-3.5 h-3.5 flex-shrink-0" />
+              {ar ? "انقر على الخريطة لاختيار نقطة البداية" : "Tap the map to set start location"}
+            </span>
+          ) : customOrigin ? (
+            <span className="text-xs font-semibold text-[#1A5C8A] flex items-center gap-1.5 truncate">
+              <span>🚩</span>
+              <span>{ar ? "البداية: موقع مخصص" : "Start: Custom location"}</span>
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <LocateFixed className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{ar ? (gpsStatus === "granted" ? "البداية: موقعك الحالي (GPS)" : "البداية: موقع افتراضي") : (gpsStatus === "granted" ? "Start: Your GPS location" : "Start: Default location")}</span>
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {customOrigin && !pickingOrigin && (
+            <button onClick={resetToGps} data-testid="btn-reset-origin"
+              className="text-[11px] px-2 py-1 rounded-lg border border-[#a8d4cb] text-[#0E4D41] bg-[#eaf6f2] font-bold hover:bg-[#d4ede6] transition-colors flex items-center gap-1">
+              <LocateFixed className="w-3 h-3" />
+              {ar ? "رجوع لموقعي" : "My location"}
+            </button>
+          )}
+          {pickingOrigin ? (
+            <button onClick={() => setPickingOrigin(false)} data-testid="btn-cancel-pick"
+              className="text-[11px] px-2 py-1 rounded-lg border border-blue-300 text-blue-700 bg-white font-bold hover:bg-blue-50 transition-colors">
+              {ar ? "إلغاء" : "Cancel"}
+            </button>
+          ) : (
+            <button onClick={() => setPickingOrigin(true)} data-testid="btn-pick-origin"
+              className="text-[11px] px-2 py-1 rounded-lg border border-border text-foreground font-semibold hover:border-[#0E4D41] hover:text-[#0E4D41] transition-colors flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {ar ? "تغيير نقطة البداية" : "Change start"}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Filter bar — hide during nav */}
       {!navRoute && (
         <div className="px-4 py-3 bg-card border-b border-border overflow-x-auto flex-shrink-0">
@@ -468,12 +539,21 @@ export function PilgrimGuideMap() {
             </div>
           </div>
         )}
-        <MapContainer center={[fallbackLat, fallbackLng]} zoom={14} style={{ width: "100%", height: "100%" }} zoomControl={false}>
+        <MapContainer center={[fallbackLat, fallbackLng]} zoom={14} style={{ width: "100%", height: "100%", cursor: pickingOrigin ? "crosshair" : undefined }} zoomControl={false}>
           <TileLayer attribution='© <a href="https://carto.com">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+
+          <MapClickHandler picking={pickingOrigin} onPick={(lat, lng) => {
+            setCustomOrigin({ lat, lng });
+            setPickingOrigin(false);
+            toast({ title: ar ? "📍 تم اختيار نقطة البداية" : "📍 Start location set" });
+          }} />
 
           {flyToGps && !navRoute && gpsPos && <FlyToPos lat={gpsPos.lat} lng={gpsPos.lng} />}
           {navRoute && <FitRoute coords={navRoute.coords} />}
 
+          {customOrigin && (
+            <Marker position={[customOrigin.lat, customOrigin.lng]} icon={makeCustomOriginIcon()} zIndexOffset={1000} />
+          )}
           <PilgrimDot lat={myLat} lng={myLng} ar={ar} />
 
           {navRoute && (
