@@ -169,8 +169,8 @@ export function PilgrimGuideMap() {
               <button
                 key={type}
                 onClick={() => toggleFilter(type)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${active ? "text-white border-transparent shadow-sm" : "bg-background border-border text-muted-foreground"}`}
-                style={active ? { background: cfg.colorHex } : {}}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${active ? "" : "bg-background border-border text-muted-foreground"}`}
+                style={active ? { background: cfg.lightHex, color: cfg.colorHex, borderColor: cfg.colorHex + "55" } : {}}
                 data-testid={`filter-${type}`}
               >
                 <span>{cfg.emoji}</span>
