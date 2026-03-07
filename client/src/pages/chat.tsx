@@ -6,12 +6,22 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type ChatMessage, type Pilgrim } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Users, MessageSquare, ChevronLeft, ChevronRight, PanelLeftOpen, PanelLeftClose, Wifi, WifiOff, Bell, X } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
-import { ar as arLocale } from "date-fns/locale";
+import { format } from "date-fns";
 import { useSearch } from "wouter";
 import { useChatWebSocket } from "@/hooks/use-chat-ws";
 
 const STORAGE_KEY = "supervisor_chat_lastread";
+
+function timeAgo(timestamp: number, isAr: boolean): string {
+  const diff = Date.now() - timestamp;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return isAr ? "الآن" : "now";
+  if (mins < 60) return isAr ? `${mins}د` : `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return isAr ? `${hours}س` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return isAr ? `${days}ي` : `${days}d`;
+}
 
 function loadLastRead(): Record<string, number> {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); } catch { return {}; }
@@ -287,9 +297,7 @@ export function ChatPage() {
                 const isActive = selectedPilgrimId === p.id;
                 const unread = getUnread(p.id);
                 const last = lastMsgTime[p.id];
-                const timeAgo = last
-                  ? formatDistanceToNow(new Date(last.time), { addSuffix: false, locale: ar ? arLocale : undefined })
-                  : null;
+                const timeAgoStr = last ? timeAgo(last.time, ar) : null;
                 return (
                   <button
                     key={p.id}
@@ -304,8 +312,8 @@ export function ChatPage() {
                     <div className="min-w-0 flex-1">
                       <div className={`flex items-center justify-between gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
                         <p className={`font-semibold text-sm truncate ${isActive ? "text-primary-foreground" : ""}`}>{p.name}</p>
-                        {timeAgo && (
-                          <span className={`text-[10px] flex-shrink-0 ${isActive ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{timeAgo}</span>
+                        {timeAgoStr && (
+                          <span className={`text-[10px] flex-shrink-0 ${isActive ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{timeAgoStr}</span>
                         )}
                       </div>
                       <p className={`text-xs truncate ${isActive ? "text-primary-foreground/70" : unread > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground"}`}>
