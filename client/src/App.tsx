@@ -8,6 +8,7 @@ import { Layout } from "@/components/layout";
 import { LanguageProvider } from "@/contexts/language-context";
 
 import { LandingPage } from "@/pages/landing";
+import { LoginPage } from "@/pages/login";
 import { Dashboard } from "@/pages/dashboard";
 import { PilgrimsPage } from "@/pages/pilgrims";
 import { CrowdManagementPage } from "@/pages/crowd-management";
@@ -24,39 +25,69 @@ import { PilgrimChatPage } from "@/pages/pilgrim-chat";
 import { PilgrimTranslatorPage } from "@/pages/pilgrim-translator";
 import { PilgrimHajjNotesPage } from "@/pages/pilgrim-hajj-notes";
 
+function getAuth() {
+  return {
+    isLoggedIn: localStorage.getItem("isLoggedIn") === "true",
+    role: localStorage.getItem("role") as "supervisor" | "pilgrim" | null,
+  };
+}
+
+function SupervisorGuard({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn, role } = getAuth();
+  if (!isLoggedIn || role !== "supervisor") {
+    window.location.replace("/login?tab=supervisor");
+    return null;
+  }
+  return <>{children}</>;
+}
+
+function PilgrimGuard({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn, role } = getAuth();
+  if (!isLoggedIn || role !== "pilgrim") {
+    window.location.replace("/login?tab=pilgrim");
+    return null;
+  }
+  return <>{children}</>;
+}
+
 function Router() {
   const [location] = useLocation();
   const isPilgrimRoute = location === "/pilgrim" || location.startsWith("/pilgrim/");
 
   if (location === "/") return <LandingPage />;
+  if (location === "/login" || location.startsWith("/login?")) return <LoginPage />;
 
   if (isPilgrimRoute) {
     return (
-      <Switch>
-        <Route path="/pilgrim" component={PilgrimHomePage} />
-        <Route path="/pilgrim/map" component={PilgrimMapPage} />
-        <Route path="/pilgrim/wallet" component={PilgrimWalletPage} />
-        <Route path="/pilgrim/hajj-notes" component={PilgrimHajjNotesPage} />
-        <Route path="/pilgrim/chat" component={PilgrimChatPage} />
-        <Route path="/pilgrim/translator" component={PilgrimTranslatorPage} />
-      </Switch>
+      <PilgrimGuard>
+        <Switch>
+          <Route path="/pilgrim" component={PilgrimHomePage} />
+          <Route path="/pilgrim/map" component={PilgrimMapPage} />
+          <Route path="/pilgrim/wallet" component={PilgrimWalletPage} />
+          <Route path="/pilgrim/hajj-notes" component={PilgrimHajjNotesPage} />
+          <Route path="/pilgrim/chat" component={PilgrimChatPage} />
+          <Route path="/pilgrim/translator" component={PilgrimTranslatorPage} />
+        </Switch>
+      </PilgrimGuard>
     );
   }
 
   return (
-    <Layout>
-      <Switch>
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/pilgrims" component={PilgrimsPage} />
-        <Route path="/crowd-management" component={CrowdManagementPage} />
-        <Route path="/security" component={SecurityPage} />
-        <Route path="/emergencies" component={EmergenciesPage} />
-        <Route path="/services" component={ServicesPage} />
-        <Route path="/translator" component={TranslatorPage} />
-        <Route path="/chat" component={ChatPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <SupervisorGuard>
+      <Layout>
+        <Switch>
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/pilgrims" component={PilgrimsPage} />
+          <Route path="/crowd-management" component={CrowdManagementPage} />
+          <Route path="/security" component={SecurityPage} />
+          <Route path="/emergencies" component={EmergenciesPage} />
+          <Route path="/services" component={ServicesPage} />
+          <Route path="/translator" component={TranslatorPage} />
+          <Route path="/chat" component={ChatPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
+    </SupervisorGuard>
   );
 }
 

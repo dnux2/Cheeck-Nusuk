@@ -100,7 +100,13 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
         {/* Logout */}
         <div className="mt-1">
           <button
-            onClick={() => { setMobileOpen(false); window.location.href = "/"; }}
+            onClick={() => {
+              setMobileOpen(false);
+              localStorage.removeItem("isLoggedIn");
+              localStorage.removeItem("role");
+              localStorage.removeItem("passport");
+              window.location.replace("/login?tab=pilgrim");
+            }}
             className="w-full py-2 rounded-2xl text-destructive hover:bg-destructive/10 font-semibold text-sm flex flex-row items-center justify-center gap-2 transition-colors"
             data-testid="btn-logout-pilgrim"
           >

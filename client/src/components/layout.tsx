@@ -126,10 +126,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Settings className="w-5 h-5 opacity-70 flex-shrink-0" />
             <span className="font-medium">{t("settings")}</span>
           </div>
-          <a href="/" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10 transition-colors ${isRTL ? "flex-row-reverse" : ""}`}>
+          <button
+            onClick={() => {
+              localStorage.removeItem("isLoggedIn");
+              localStorage.removeItem("role");
+              localStorage.removeItem("username");
+              window.location.replace("/login?tab=supervisor");
+            }}
+            data-testid="btn-logout-supervisor"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10 transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
+          >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span className="font-medium">{lang === "ar" ? "تسجيل الخروج" : "Logout"}</span>
-          </a>
+          </button>
         </div>
       </motion.aside>
 
