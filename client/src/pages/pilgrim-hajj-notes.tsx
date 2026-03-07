@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, Save, CheckCircle2, Star, Lock, Clock,
-  Camera, Image, Tag, X, Trash2, ZoomIn, ChevronLeft, ChevronRight, Plus
+  Camera, Image, Tag, X, Trash2, ZoomIn, ChevronLeft, ChevronRight, Plus,
+  RefreshCcw, AlertCircle, SwitchCamera
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -24,33 +25,38 @@ const STAGES = [
   { key: "farewell", dayAr: "طواف الوداع", dayEn: "Farewell Tawaf", ritualAr: "طواف الوداع قبل مغادرة مكة المكرمة — آخر شعائر الحج", ritualEn: "Farewell Tawaf before leaving Makkah — final rite of Hajj", icon: "🤍" },
 ];
 
+function compressDataUrl(dataUrl: string, maxKB = 350): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      const maxDim = 1200;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+        else { width = Math.round((width * maxDim) / height); height = maxDim; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      let quality = 0.85;
+      const tryCompress = () => {
+        const out = canvas.toDataURL("image/jpeg", quality);
+        const kb = Math.round((out.length * 3) / 4 / 1024);
+        if (kb > maxKB && quality > 0.2) { quality -= 0.1; tryCompress(); }
+        else resolve(out);
+      };
+      tryCompress();
+    };
+    img.src = dataUrl;
+  });
+}
+
 function compressImage(file: File, maxKB = 350): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let { width, height } = img;
-        const maxDim = 1200;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
-          else { width = Math.round((width * maxDim) / height); height = maxDim; }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-        let quality = 0.85;
-        const tryCompress = () => {
-          const dataUrl = canvas.toDataURL("image/jpeg", quality);
-          const kb = Math.round((dataUrl.length * 3) / 4 / 1024);
-          if (kb > maxKB && quality > 0.2) { quality -= 0.1; tryCompress(); }
-          else resolve(dataUrl);
-        };
-        tryCompress();
-      };
-      img.onerror = reject;
-      img.src = e.target!.result as string;
+      compressDataUrl(e.target!.result as string, maxKB).then(resolve).catch(reject);
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
@@ -61,12 +67,20 @@ export function PilgrimHajjNotesPage() {
   const { lang, isRTL } = useLanguage();
   const { toast } = useToast();
   const ar = lang === "ar";
+
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ photos: PilgrimPhoto[]; index: number } | null>(null);
   const [addPhotoStage, setAddPhotoStage] = useState<string | null>(null);
   const [pendingPhoto, setPendingPhoto] = useState<{ dataUrl: string; caption: string; tags: string[]; tagInput: string } | null>(null);
-  const [uploadingStage, setUploadingStage] = useState<string | null>(null);
+
+  // Camera states
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<"environment" | "user">("environment");
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const pilgrimId = Number(localStorage.getItem("pilgrimId") || "1");
@@ -85,6 +99,71 @@ export function PilgrimHajjNotesPage() {
 
   const noteMap: Record<string, string> = {};
   notes.forEach(n => { noteMap[n.stageKey] = n.note; });
+
+  // ── Camera helpers ──────────────────────────────────────────────────────────
+
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const startCamera = useCallback(async (facing: "environment" | "user") => {
+    stopStream();
+    setCameraReady(false);
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => setCameraReady(true);
+      }
+    } catch (err: any) {
+      const msg = err?.name === "NotAllowedError"
+        ? (ar ? "تم رفض إذن الكاميرا. يرجى السماح بالوصول من إعدادات المتصفح." : "Camera permission denied. Please allow access in browser settings.")
+        : (ar ? "تعذّر الوصول إلى الكاميرا." : "Could not access camera.");
+      setCameraError(msg);
+    }
+  }, [stopStream, ar]);
+
+  const openCamera = useCallback((stageKey: string) => {
+    setAddPhotoStage(stageKey);
+    setPendingPhoto(null);
+    setCameraOpen(true);
+    setCameraFacing("environment");
+    startCamera("environment");
+  }, [startCamera]);
+
+  const closeCamera = useCallback(() => {
+    stopStream();
+    setCameraOpen(false);
+    setCameraReady(false);
+    setCameraError(null);
+  }, [stopStream]);
+
+  const flipCamera = useCallback(() => {
+    const next = cameraFacing === "environment" ? "user" : "environment";
+    setCameraFacing(next);
+    startCamera(next);
+  }, [cameraFacing, startCamera]);
+
+  const capturePhoto = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video || !cameraReady) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")!.drawImage(video, 0, 0);
+    const rawDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+    closeCamera();
+    const compressed = await compressDataUrl(rawDataUrl);
+    setPendingPhoto({ dataUrl: compressed, caption: "", tags: [], tagInput: "" });
+  }, [cameraReady, closeCamera]);
+
+  // ── Mutations ───────────────────────────────────────────────────────────────
 
   const saveNote = useMutation({
     mutationFn: ({ stageKey, note }: { stageKey: string; note: string }) =>
@@ -106,16 +185,17 @@ export function PilgrimHajjNotesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/pilgrims", pilgrimId, "photos"] });
       setPendingPhoto(null);
       setAddPhotoStage(null);
-      setUploadingStage(null);
       toast({ title: ar ? "✓ تم حفظ الصورة" : "✓ Photo saved" });
     },
-    onError: () => { setUploadingStage(null); toast({ title: ar ? "فشل الحفظ" : "Save failed", variant: "destructive" }); },
+    onError: () => { toast({ title: ar ? "فشل الحفظ" : "Save failed", variant: "destructive" }); },
   });
 
   const deletePhoto = useMutation({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/photos/${id}`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/pilgrims", pilgrimId, "photos"] }); setLightbox(null); },
   });
+
+  // ── File picker ─────────────────────────────────────────────────────────────
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,6 +208,14 @@ export function PilgrimHajjNotesPage() {
     }
     e.target.value = "";
   };
+
+  const openGallery = (stageKey: string) => {
+    setAddPhotoStage(stageKey);
+    setPendingPhoto(null);
+    fileInputRef.current?.click();
+  };
+
+  // ── Tags ────────────────────────────────────────────────────────────────────
 
   const addTag = () => {
     if (!pendingPhoto) return;
@@ -142,12 +230,15 @@ export function PilgrimHajjNotesPage() {
 
   const handleSavePhoto = () => {
     if (!pendingPhoto || !addPhotoStage) return;
-    setUploadingStage(addPhotoStage);
     savePhoto.mutate({ stageKey: addPhotoStage, photoData: pendingPhoto.dataUrl, caption: pendingPhoto.caption, tags: pendingPhoto.tags });
   };
 
+  // ── Derived ─────────────────────────────────────────────────────────────────
+
   const getDraftOrSaved = (key: string) => draftNotes[key] !== undefined ? draftNotes[key] : (noteMap[key] ?? "");
   const hasUnsaved = (key: string) => draftNotes[key] !== undefined && draftNotes[key] !== (noteMap[key] ?? "");
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <PilgrimLayout>
@@ -227,7 +318,7 @@ export function PilgrimHajjNotesPage() {
                 <Textarea
                   value={draft}
                   onChange={(e) => setDraftNotes(prev => ({ ...prev, [stage.key]: e.target.value }))}
-                  placeholder={ar ? `سجّل أفكارك وذكرياتك…` : `Write your thoughts…`}
+                  placeholder={ar ? "سجّل أفكارك وذكرياتك…" : "Write your thoughts…"}
                   className="min-h-[72px] resize-none text-sm bg-background border-border rounded-2xl focus:border-primary/50 transition-colors"
                   dir={isRTL ? "rtl" : "ltr"}
                   data-testid={`textarea-note-${stage.key}`}
@@ -256,14 +347,27 @@ export function PilgrimHajjNotesPage() {
                     {ar ? "الصور" : "Photos"}
                     {stagePhotos.length > 0 && <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">{stagePhotos.length}</span>}
                   </div>
-                  <button
-                    data-testid={`button-add-photo-${stage.key}`}
-                    onClick={() => { setAddPhotoStage(stage.key); setPendingPhoto(null); fileInputRef.current?.click(); }}
-                    className={`flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {ar ? "أضف صورة" : "Add photo"}
-                  </button>
+                  {/* Add photo buttons */}
+                  <div className={`flex items-center gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <button
+                      data-testid={`button-camera-${stage.key}`}
+                      onClick={() => openCamera(stage.key)}
+                      title={ar ? "التقاط صورة بالكاميرا" : "Take photo with camera"}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 px-2.5 py-1.5 rounded-xl hover:bg-primary/10 transition-all"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      {ar ? "كاميرا" : "Camera"}
+                    </button>
+                    <button
+                      data-testid={`button-gallery-${stage.key}`}
+                      onClick={() => openGallery(stage.key)}
+                      title={ar ? "اختيار من المعرض" : "Choose from gallery"}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-xl hover:bg-secondary transition-all"
+                    >
+                      <Image className="w-3.5 h-3.5" />
+                      {ar ? "معرض" : "Gallery"}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Photo grid */}
@@ -280,11 +384,9 @@ export function PilgrimHajjNotesPage() {
                         className="relative aspect-square rounded-2xl overflow-hidden bg-muted group"
                       >
                         <img src={photo.photoData} alt={photo.caption || ""} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                        {/* Overlay */}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                           <ZoomIn className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        {/* Tags overlay */}
                         {(photo.tags && photo.tags.length > 0) && (
                           <div className="absolute bottom-0 inset-x-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
                             <div className="flex flex-wrap gap-1">
@@ -297,9 +399,8 @@ export function PilgrimHajjNotesPage() {
                         )}
                       </motion.button>
                     ))}
-                    {/* Empty add slot */}
                     <button
-                      onClick={() => { setAddPhotoStage(stage.key); setPendingPhoto(null); fileInputRef.current?.click(); }}
+                      onClick={() => openCamera(stage.key)}
                       className="aspect-square rounded-2xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center text-muted-foreground hover:text-primary"
                     >
                       <Plus className="w-5 h-5" />
@@ -308,36 +409,157 @@ export function PilgrimHajjNotesPage() {
                 )}
 
                 {stagePhotos.length === 0 && (
-                  <button
-                    onClick={() => { setAddPhotoStage(stage.key); setPendingPhoto(null); fileInputRef.current?.click(); }}
-                    className={`w-full py-4 rounded-2xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-muted-foreground hover:text-primary text-xs font-medium ${isRTL ? "flex-row-reverse" : ""}`}
-                  >
-                    <Camera className="w-4 h-4" />
-                    {ar ? "اضغط لإضافة صور من هذه المرحلة" : "Tap to add photos from this stage"}
-                  </button>
+                  <div className={`grid grid-cols-2 gap-2`}>
+                    <button
+                      data-testid={`button-add-camera-${stage.key}`}
+                      onClick={() => openCamera(stage.key)}
+                      className={`py-5 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary/60 bg-primary/5 hover:bg-primary/10 transition-all flex flex-col items-center justify-center gap-1.5 text-primary`}
+                    >
+                      <Camera className="w-5 h-5" />
+                      <span className="text-xs font-semibold">{ar ? "التقط صورة" : "Take photo"}</span>
+                    </button>
+                    <button
+                      data-testid={`button-add-gallery-${stage.key}`}
+                      onClick={() => openGallery(stage.key)}
+                      className={`py-5 rounded-2xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-secondary transition-all flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground`}
+                    >
+                      <Image className="w-5 h-5" />
+                      <span className="text-xs font-semibold">{ar ? "من المعرض" : "From gallery"}</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </motion.div>
           );
         })}
 
-        {/* Footer */}
         <div className="text-center text-xs text-muted-foreground pb-4">
           {ar ? "يومياتك تُحفظ في السحابة — لن تضيع ذكرياتك أبداً ✨" : "Your journal is saved securely — your memories are always safe ✨"}
         </div>
       </div>
 
-      {/* Hidden file input */}
+      {/* Hidden gallery file input */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleFileSelect}
       />
 
-      {/* Photo upload dialog */}
+      {/* ── Live Camera Modal ─────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {cameraOpen && (
+          <motion.div
+            key="camera-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black flex flex-col"
+          >
+            {/* Camera header */}
+            <div className={`absolute top-0 inset-x-0 z-10 flex items-center justify-between px-4 pt-safe pt-4 pb-3 bg-gradient-to-b from-black/60 to-transparent ${isRTL ? "flex-row-reverse" : ""}`}>
+              <button
+                data-testid="button-close-camera"
+                onClick={closeCamera}
+                className="p-2.5 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <span className="text-white font-semibold text-sm">
+                {ar ? "التقاط صورة" : "Take Photo"}
+              </span>
+              <button
+                data-testid="button-flip-camera"
+                onClick={flipCamera}
+                title={ar ? "تبديل الكاميرا" : "Flip camera"}
+                className="p-2.5 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+              >
+                <SwitchCamera className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Video preview */}
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${cameraFacing === "user" ? "scale-x-[-1]" : ""}`}
+              />
+
+              {/* Loading overlay */}
+              {!cameraReady && !cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black">
+                  <div className="flex flex-col items-center gap-3 text-white">
+                    <div className="w-10 h-10 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <p className="text-sm font-medium">{ar ? "جاري تشغيل الكاميرا…" : "Starting camera…"}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error state */}
+              {cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/90 px-6">
+                  <div className="flex flex-col items-center gap-4 text-center max-w-xs">
+                    <div className="w-14 h-14 rounded-full bg-destructive/20 flex items-center justify-center">
+                      <AlertCircle className="w-7 h-7 text-destructive" />
+                    </div>
+                    <p className="text-white text-sm leading-relaxed">{cameraError}</p>
+                    <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <button
+                        onClick={() => startCamera(cameraFacing)}
+                        className="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-colors flex items-center gap-1.5"
+                      >
+                        <RefreshCcw className="w-4 h-4" />
+                        {ar ? "إعادة المحاولة" : "Retry"}
+                      </button>
+                      <button
+                        onClick={() => { closeCamera(); openGallery(addPhotoStage!); }}
+                        className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+                      >
+                        <Image className="w-4 h-4" />
+                        {ar ? "من المعرض" : "Gallery"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Guide frame overlay */}
+              {cameraReady && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="w-64 h-64 rounded-3xl border-2 border-white/30" />
+                </div>
+              )}
+            </div>
+
+            {/* Bottom controls */}
+            <div className="absolute bottom-0 inset-x-0 pb-safe pb-8 pt-6 bg-gradient-to-t from-black/70 to-transparent flex flex-col items-center gap-4">
+              {/* Capture button */}
+              <button
+                data-testid="button-capture-photo"
+                onClick={capturePhoto}
+                disabled={!cameraReady || !!cameraError}
+                className="w-20 h-20 rounded-full bg-white disabled:opacity-40 hover:scale-105 active:scale-95 transition-transform shadow-2xl flex items-center justify-center"
+              >
+                <div className="w-16 h-16 rounded-full border-4 border-black/10 bg-white" />
+              </button>
+              {/* Gallery shortcut */}
+              <button
+                onClick={() => { closeCamera(); openGallery(addPhotoStage!); }}
+                className={`flex items-center gap-1.5 text-white/80 text-xs font-medium hover:text-white transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
+              >
+                <Image className="w-4 h-4" />
+                {ar ? "أو اختر من المعرض" : "or choose from gallery"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Photo caption/tags dialog ─────────────────────────────────────────── */}
       <AnimatePresence>
         {pendingPhoto && addPhotoStage && (
           <motion.div
@@ -357,7 +579,6 @@ export function PilgrimHajjNotesPage() {
               className={`bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden ${isRTL ? "text-right" : ""}`}
               dir={isRTL ? "rtl" : "ltr"}
             >
-              {/* Dialog header */}
               <div className={`flex items-center justify-between px-5 pt-5 pb-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <h3 className="font-bold text-base">{ar ? "توثيق اللحظة" : "Capture the moment"}</h3>
                 <button onClick={() => { setPendingPhoto(null); setAddPhotoStage(null); }} className="p-1.5 rounded-xl hover:bg-secondary transition-colors">
@@ -365,13 +586,11 @@ export function PilgrimHajjNotesPage() {
                 </button>
               </div>
 
-              {/* Preview */}
               <div className="mx-5 rounded-2xl overflow-hidden aspect-video bg-muted">
                 <img src={pendingPhoto.dataUrl} alt="preview" className="w-full h-full object-cover" />
               </div>
 
               <div className="px-5 pt-4 pb-5 space-y-4">
-                {/* Caption input */}
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground block mb-1.5">
                     {ar ? "وصف الصورة (اختياري)" : "Caption (optional)"}
@@ -387,15 +606,12 @@ export function PilgrimHajjNotesPage() {
                   />
                 </div>
 
-                {/* Tags input */}
                 <div>
                   <label className={`text-xs font-semibold text-muted-foreground block mb-1.5 flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <Tag className="w-3 h-3" />
                     {ar ? "التاقات" : "Tags"}
-                    <span className="font-normal text-muted-foreground/60">{ar ? "(اضغط Enter أو فاصلة للإضافة)" : "(press Enter or comma to add)"}</span>
+                    <span className="font-normal text-muted-foreground/60">{ar ? "(اضغط Enter للإضافة)" : "(press Enter to add)"}</span>
                   </label>
-
-                  {/* Tag chips */}
                   {pendingPhoto.tags.length > 0 && (
                     <div className={`flex flex-wrap gap-1.5 mb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                       {pendingPhoto.tags.map(tag => (
@@ -408,7 +624,6 @@ export function PilgrimHajjNotesPage() {
                       ))}
                     </div>
                   )}
-
                   <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <input
                       type="text"
@@ -420,16 +635,12 @@ export function PilgrimHajjNotesPage() {
                       data-testid="input-photo-tag"
                       className="flex-1 px-3.5 py-2.5 rounded-xl border-2 border-border bg-background text-sm focus:outline-none focus:border-primary transition-colors"
                     />
-                    <button
-                      onClick={addTag}
-                      className="px-3.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-sm font-semibold"
-                    >
+                    <button onClick={addTag} className="px-3.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-sm font-semibold">
                       {ar ? "أضف" : "Add"}
                     </button>
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className={`flex gap-3 pt-1 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <button
                     onClick={() => { setPendingPhoto(null); setAddPhotoStage(null); }}
@@ -441,7 +652,7 @@ export function PilgrimHajjNotesPage() {
                     data-testid="button-save-photo"
                     onClick={handleSavePhoto}
                     disabled={savePhoto.isPending}
-                    className="flex-2 flex-1 py-3 rounded-2xl font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
+                    className="flex-1 py-3 rounded-2xl font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
                   >
                     {savePhoto.isPending ? (ar ? "جاري الحفظ…" : "Saving…") : (ar ? "حفظ الصورة" : "Save Photo")}
                   </button>
@@ -452,7 +663,7 @@ export function PilgrimHajjNotesPage() {
         )}
       </AnimatePresence>
 
-      {/* Lightbox viewer */}
+      {/* ── Lightbox viewer ───────────────────────────────────────────────────── */}
       <AnimatePresence>
         {lightbox && (
           <motion.div
@@ -463,11 +674,8 @@ export function PilgrimHajjNotesPage() {
             className="fixed inset-0 z-50 bg-black/95 flex flex-col"
             onClick={() => setLightbox(null)}
           >
-            {/* Lightbox header */}
             <div className={`flex items-center justify-between px-4 py-3 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`} onClick={e => e.stopPropagation()}>
-              <span className="text-white/60 text-sm font-medium">
-                {lightbox.index + 1} / {lightbox.photos.length}
-              </span>
+              <span className="text-white/60 text-sm font-medium">{lightbox.index + 1} / {lightbox.photos.length}</span>
               <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <button
                   data-testid={`button-delete-photo-${lightbox.photos[lightbox.index]?.id}`}
@@ -482,7 +690,6 @@ export function PilgrimHajjNotesPage() {
               </div>
             </div>
 
-            {/* Main image + navigation */}
             <div className="flex-1 flex items-center justify-center relative min-h-0" onClick={e => e.stopPropagation()}>
               {lightbox.photos.length > 1 && (
                 <button
@@ -492,7 +699,6 @@ export function PilgrimHajjNotesPage() {
                   <ChevronLeft className={`w-5 h-5 ${isRTL ? "rotate-180" : ""}`} />
                 </button>
               )}
-
               <AnimatePresence mode="wait">
                 <motion.img
                   key={lightbox.photos[lightbox.index]?.id}
@@ -504,7 +710,6 @@ export function PilgrimHajjNotesPage() {
                   className="max-w-full max-h-full object-contain px-14"
                 />
               </AnimatePresence>
-
               {lightbox.photos.length > 1 && (
                 <button
                   onClick={() => setLightbox(l => l ? { ...l, index: (l.index + 1) % l.photos.length } : l)}
@@ -515,7 +720,6 @@ export function PilgrimHajjNotesPage() {
               )}
             </div>
 
-            {/* Caption + Tags */}
             {(lightbox.photos[lightbox.index]?.caption || (lightbox.photos[lightbox.index]?.tags?.length ?? 0) > 0) && (
               <div className="flex-shrink-0 px-6 py-4 space-y-2" onClick={e => e.stopPropagation()} dir={isRTL ? "rtl" : "ltr"}>
                 {lightbox.photos[lightbox.index]?.caption && (
@@ -536,7 +740,6 @@ export function PilgrimHajjNotesPage() {
               </div>
             )}
 
-            {/* Thumbnail strip */}
             {lightbox.photos.length > 1 && (
               <div className="flex-shrink-0 px-4 pb-4 flex gap-2 justify-center overflow-x-auto" onClick={e => e.stopPropagation()}>
                 {lightbox.photos.map((p, idx) => (
