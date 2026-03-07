@@ -61,6 +61,41 @@ export function useCreatePilgrim() {
   });
 }
 
+export function useDeletePilgrim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/pilgrims/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok && res.status !== 204) throw new Error("Failed to delete pilgrim");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.pilgrims.list.path] });
+    },
+  });
+}
+
+export function useUpdatePilgrimPermitStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await fetch(`/api/pilgrims/${id}/permit-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update permit status");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.pilgrims.list.path] });
+    },
+  });
+}
+
 export function useUpdatePilgrimLocation() {
   const queryClient = useQueryClient();
   return useMutation({

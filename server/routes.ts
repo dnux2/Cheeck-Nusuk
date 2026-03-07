@@ -145,6 +145,30 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/pilgrims/:id/permit-status", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { status } = req.body;
+      if (!["Valid", "Expired", "Pending", "UnderReview"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      const pilgrim = await storage.updatePilgrimPermitStatus(id, status);
+      res.json(pilgrim);
+    } catch (err) {
+      res.status(404).json({ message: "Pilgrim not found" });
+    }
+  });
+
+  app.delete("/api/pilgrims/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      await storage.deletePilgrim(id);
+      res.status(204).end();
+    } catch (err) {
+      res.status(404).json({ message: "Pilgrim not found" });
+    }
+  });
+
   app.patch(api.pilgrims.updateLocation.path, async (req, res) => {
     try {
       const input = api.pilgrims.updateLocation.input.parse(req.body);

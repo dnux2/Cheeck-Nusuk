@@ -1,6 +1,6 @@
-import { usePilgrims, useCreatePilgrim } from "@/hooks/use-pilgrims";
+import { usePilgrims, useCreatePilgrim, useDeletePilgrim, useUpdatePilgrimPermitStatus } from "@/hooks/use-pilgrims";
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, MapPin, Eye, ShieldAlert, Navigation, ChevronDown, ChevronRight, Users } from "lucide-react";
+import { Search, Plus, MapPin, Eye, ShieldAlert, Navigation, ChevronDown, ChevronRight, Users, Trash2, Clock, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
@@ -13,6 +13,8 @@ export function PilgrimsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const createPilgrim = useCreatePilgrim();
+  const deletePilgrim = useDeletePilgrim();
+  const updatePermitStatus = useUpdatePilgrimPermitStatus();
   const { t, isRTL, lang } = useLanguage();
   const ar = lang === "ar";
   const [, navigate] = useLocation();
@@ -21,6 +23,7 @@ export function PilgrimsPage() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [selectedPilgrim, setSelectedPilgrim] = useState<Pilgrim | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Auto-open pilgrim details when navigated from map with ?pilgrimId=X
   useEffect(() => {
@@ -48,7 +51,8 @@ export function PilgrimsPage() {
       statusFilter === "all" ||
       (statusFilter === "valid" && p.permitStatus === "Valid") ||
       (statusFilter === "expired" && p.permitStatus === "Expired") ||
-      (statusFilter === "none" && p.permitStatus === "Pending");
+      (statusFilter === "none" && p.permitStatus === "Pending") ||
+      (statusFilter === "review" && p.permitStatus === "UnderReview");
     return matchesSearch && matchesStatus;
   }), [pilgrims, search, statusFilter]);
 
@@ -108,11 +112,16 @@ export function PilgrimsPage() {
   const permitBadge = (status: string) => {
     if (status === "Valid") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
     if (status === "Expired") return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+    if (status === "UnderReview") return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
     return "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400";
   };
 
-  const permitLabel = (status: string) =>
-    status === "Valid" ? t("valid") : status === "Expired" ? t("expired") : t("none");
+  const permitLabel = (status: string) => {
+    if (status === "Valid") return t("valid");
+    if (status === "Expired") return t("expired");
+    if (status === "UnderReview") return ar ? "جاري المراجعة" : "Under Review";
+    return t("none");
+  };
 
   const totalFiltered = filtered?.length ?? 0;
   const totalEmergency = filtered?.filter(p => p.emergencyStatus).length ?? 0;
@@ -162,6 +171,7 @@ export function PilgrimsPage() {
               <option value="valid">{t("validPermit")}</option>
               <option value="expired">{t("expiredPermit")}</option>
               <option value="none">{t("none")}</option>
+              <option value="review">{ar ? "جاري المراجعة" : "Under Review"}</option>
             </select>
             <button
               data-testid="button-expand-all-groups"
@@ -290,22 +300,43 @@ export function PilgrimsPage() {
                                   )}
                                 </td>
                                 <td className={`px-4 py-3.5 ${isRTL ? "text-left" : "text-right"}`}>
-                                  <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse justify-start" : "justify-end"}`}>
+                                  <div className={`flex items-center gap-1.5 flex-wrap ${isRTL ? "flex-row-reverse justify-start" : "justify-end"}`}>
                                     <button
                                       data-testid={`button-track-pilgrim-${p.id}`}
                                       onClick={(e) => { e.stopPropagation(); navigate(`/crowd-management?highlight=${p.id}`); }}
-                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/70 font-semibold text-sm transition-colors border border-border ${isRTL ? "flex-row-reverse" : ""}`}
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/70 font-semibold text-xs transition-colors border border-border ${isRTL ? "flex-row-reverse" : ""}`}
                                     >
-                                      <Navigation className="w-3.5 h-3.5" />
+                                      <Navigation className="w-3 h-3" />
                                       {ar ? "تتبع" : "Track"}
                                     </button>
                                     <button
                                       data-testid={`button-view-pilgrim-${p.id}`}
                                       onClick={(e) => { e.stopPropagation(); setSelectedPilgrim(p); }}
-                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-sm transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-xs transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
                                     >
-                                      <Eye className="w-4 h-4" />
+                                      <Eye className="w-3 h-3" />
                                       {t("viewPilgrim")}
+                                    </button>
+                                    {p.permitStatus !== "UnderReview" && (
+                                      <button
+                                        data-testid={`button-review-pilgrim-${p.id}`}
+                                        onClick={(e) => { e.stopPropagation(); updatePermitStatus.mutate({ id: p.id, status: "UnderReview" }); }}
+                                        disabled={updatePermitStatus.isPending}
+                                        title={ar ? "وضع قيد المراجعة" : "Mark as Under Review"}
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 font-semibold text-xs transition-colors disabled:opacity-50 ${isRTL ? "flex-row-reverse" : ""}`}
+                                      >
+                                        <Clock className="w-3 h-3" />
+                                        {ar ? "مراجعة" : "Review"}
+                                      </button>
+                                    )}
+                                    <button
+                                      data-testid={`button-delete-pilgrim-${p.id}`}
+                                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(p.id); }}
+                                      title={ar ? "حذف الحاج" : "Delete Pilgrim"}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 font-semibold text-xs transition-colors"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      {ar ? "حذف" : "Delete"}
                                     </button>
                                   </div>
                                 </td>
@@ -330,6 +361,69 @@ export function PilgrimsPage() {
           onClose={() => setSelectedPilgrim(null)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmDeleteId !== null && (
+          <motion.div
+            key="delete-confirm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setConfirmDeleteId(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className={`bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm ${isRTL ? "text-right" : ""}`}
+              dir={isRTL ? "rtl" : "ltr"}
+            >
+              <div className={`flex items-center gap-3 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <div className="w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="font-bold text-base">{ar ? "حذف الحاج" : "Delete Pilgrim"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {ar ? "هذا الإجراء لا يمكن التراجع عنه" : "This action cannot be undone"}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">
+                {ar
+                  ? "هل أنت متأكد من حذف هذا الحاج من السجل نهائياً؟"
+                  : "Are you sure you want to permanently delete this pilgrim from the registry?"}
+              </p>
+              <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <button
+                  data-testid="button-cancel-delete"
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-2.5 rounded-xl font-semibold border border-border hover:bg-secondary transition-colors text-sm"
+                >
+                  {ar ? "إلغاء" : "Cancel"}
+                </button>
+                <button
+                  data-testid="button-confirm-delete"
+                  onClick={() => {
+                    deletePilgrim.mutate(confirmDeleteId!, {
+                      onSuccess: () => setConfirmDeleteId(null),
+                    });
+                  }}
+                  disabled={deletePilgrim.isPending}
+                  className="flex-1 py-2.5 rounded-xl font-bold bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-60 text-sm"
+                >
+                  {deletePilgrim.isPending
+                    ? (ar ? "جاري الحذف..." : "Deleting...")
+                    : (ar ? "تأكيد الحذف" : "Confirm Delete")}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Register Dialog */}
       {isModalOpen && (

@@ -24,6 +24,8 @@ export interface IStorage {
   createPilgrim(pilgrim: InsertPilgrim): Promise<Pilgrim>;
   updatePilgrimLocation(id: number, lat: number, lng: number): Promise<Pilgrim>;
   updatePilgrimHealth(id: number, data: Partial<Pick<Pilgrim, 'bloodType'|'allergies'|'medicalConditions'|'emergencyContact'|'healthStatus'>>): Promise<Pilgrim>;
+  updatePilgrimPermitStatus(id: number, status: string): Promise<Pilgrim>;
+  deletePilgrim(id: number): Promise<void>;
 
   // Emergencies
   getEmergencies(): Promise<Emergency[]>;
@@ -76,6 +78,19 @@ export class DatabaseStorage implements IStorage {
       .returning();
     if (!updated) throw new Error(`Pilgrim with id ${id} not found`);
     return updated;
+  }
+
+  async updatePilgrimPermitStatus(id: number, status: string): Promise<Pilgrim> {
+    const [updated] = await db.update(pilgrims)
+      .set({ permitStatus: status, lastUpdated: new Date() })
+      .where(eq(pilgrims.id, id))
+      .returning();
+    if (!updated) throw new Error(`Pilgrim with id ${id} not found`);
+    return updated;
+  }
+
+  async deletePilgrim(id: number): Promise<void> {
+    await db.delete(pilgrims).where(eq(pilgrims.id, id));
   }
 
   // Emergencies
