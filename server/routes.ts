@@ -533,6 +533,69 @@ Write a brief analysis (3-4 sentences) explaining why it's crowded now, then rec
     }
   });
 
+  // Route analysis — AI picks the best pedestrian route
+  app.post("/api/route-analysis", async (req, res) => {
+    try {
+      const { routes, facility, crowdScore, lang, hour } = req.body as {
+        routes: Array<{ distM: number; durationS: number; stepsCount: number; label: string }>;
+        facility: { nameAr: string; nameEn: string; type: string };
+        crowdScore: number;
+        lang: "ar" | "en";
+        hour: number;
+      };
+
+      const ar = lang === "ar";
+      const timeOfDay = hour < 5 ? (ar ? "ليلاً متأخراً" : "late night") :
+                        hour < 12 ? (ar ? "صباحاً" : "morning") :
+                        hour < 17 ? (ar ? "ظهراً" : "afternoon") :
+                        hour < 21 ? (ar ? "مساءً" : "evening") : (ar ? "ليلاً" : "night");
+
+      const routeList = routes.map((r, i) => {
+        const label = ar ? `المسار ${["أ","ب"][i] ?? i + 1}` : `Route ${["A","B"][i] ?? i + 1}`;
+        const dist = r.distM < 1000
+          ? (ar ? `${Math.round(r.distM)} متر` : `${Math.round(r.distM)} m`)
+          : (ar ? `${(r.distM / 1000).toFixed(1)} كم` : `${(r.distM / 1000).toFixed(1)} km`);
+        const mins = Math.round(r.durationS / 60);
+        const time = ar ? `${mins} دقيقة` : `${mins} min`;
+        return `${label}: ${dist}، ${time}، ${r.stepsCount} ${ar ? "خطوة" : "steps"}`;
+      }).join("\n");
+
+      const prompt = ar
+        ? `أنت مساعد ذكي لتوجيه الحجاج في مكة المكرمة. يريد الحاج التوجه إلى "${facility.nameAr}".
+الوقت الحالي: ${timeOfDay} (الساعة ${hour}). مستوى الزحام في الوجهة: ${crowdScore}%.
+
+المسارات المتاحة:
+${routeList}
+
+قدّم تحليلاً موجزاً جداً (جملتان أو ثلاث) يوضح أي المسارات أفضل ولماذا، مع نصيحة عملية واحدة للحاج تناسب الوقت والزحام. الأسلوب: ودي، واضح، مختصر. ثم في السطر الأخير اكتب فقط: BEST:أ أو BEST:ب (لا شيء آخر في ذلك السطر).`
+        : `You are a smart Hajj route advisor in Makkah. A pilgrim wants to go to "${facility.nameEn}".
+Current time: ${timeOfDay} (${hour}:00). Destination crowd level: ${crowdScore}%.
+
+Available routes:
+${routeList}
+
+Provide a very brief analysis (2–3 sentences) explaining which route is better and why, plus one practical tip for the pilgrim given the time and crowd level. Tone: friendly, clear, concise. Then on the last line write only: BEST:A or BEST:B (nothing else on that line).`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_completion_tokens: 250,
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? "";
+      const lines = raw.trim().split("\n");
+      const lastLine = lines[lines.length - 1].trim();
+      let recommendedIndex = 0;
+      if (lastLine === "BEST:ب" || lastLine === "BEST:B") recommendedIndex = 1;
+      const explanation = lines.slice(0, -1).join("\n").trim() || raw.trim();
+
+      res.json({ recommendedIndex, explanation });
+    } catch (err) {
+      console.error("Route analysis error:", err);
+      res.status(500).json({ error: "Analysis failed" });
+    }
+  });
+
   await seedDatabase();
 
   return httpServer;

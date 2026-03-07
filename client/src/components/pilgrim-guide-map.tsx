@@ -7,7 +7,7 @@ import { useLanguage } from "@/contexts/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { type Pilgrim } from "@shared/schema";
-import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw, LocateFixed, MousePointer2, Users, AlertTriangle, ArrowRight, CheckCircle2, Search } from "lucide-react";
+import { Navigation, X, ChevronDown, ChevronUp, Clock, MapPin, RefreshCw, LocateFixed, MousePointer2, Users, AlertTriangle, ArrowRight, CheckCircle2, Search, Sparkles, Route, Timer } from "lucide-react";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -596,6 +596,116 @@ function CenterOnNav({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+function RouteAnalysisModal({
+  ar, isRTL, routes, facility, recommendedIndex, explanation, analysisLoading,
+  onPickRoute, onClose,
+}: {
+  ar: boolean; isRTL: boolean;
+  routes: NavRoute[];
+  facility: Facility;
+  recommendedIndex: number;
+  explanation: string;
+  analysisLoading: boolean;
+  onPickRoute: (idx: number) => void;
+  onClose: () => void;
+}) {
+  const cfg = TYPE_CONFIG[facility.type];
+  const labels = ar ? ["أ", "ب"] : ["A", "B"];
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-3" style={{ direction: ar ? "rtl" : "ltr" }}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4" style={{ background: "linear-gradient(135deg, #d4ede6 0%, #eaf6f2 100%)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-2xl flex items-center justify-center text-base flex-shrink-0"
+                style={{ background: cfg.lightHex, border: `2px solid ${cfg.colorHex}` }}>
+                {cfg.emoji}
+              </div>
+              <div>
+                <div className="font-bold text-[#0E4D41] text-[14px] leading-tight">{ar ? facility.nameAr : facility.nameEn}</div>
+                <div className="text-[10px] text-[#2d7a5f]/70">{ar ? "تحليل المسار بالذكاء الاصطناعي" : "AI Route Analysis"}</div>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/60 flex items-center justify-center hover:bg-white flex-shrink-0">
+              <X className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+          </div>
+
+          {/* AI badge */}
+          <div className="flex items-center gap-1.5 bg-white/70 rounded-xl px-3 py-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <span className="text-[11px] font-bold text-emerald-700">{ar ? "تحليل AI" : "AI Analysis"}</span>
+          </div>
+        </div>
+
+        {/* AI Explanation */}
+        <div className="px-5 py-3 border-b border-gray-100 min-h-[56px]">
+          {analysisLoading ? (
+            <div className="flex items-center gap-2 py-1">
+              <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              <span className="text-xs text-gray-500">{ar ? "يتم تحليل أفضل مسار…" : "Analyzing best route…"}</span>
+            </div>
+          ) : (
+            <p className="text-[12px] text-gray-700 leading-relaxed">{explanation}</p>
+          )}
+        </div>
+
+        {/* Route Cards */}
+        <div className={`px-4 py-3 flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+          {routes.map((r, idx) => {
+            const isRec = idx === recommendedIndex;
+            const distStr = r.totalDistM < 1000
+              ? `${Math.round(r.totalDistM)} ${ar ? "م" : "m"}`
+              : `${(r.totalDistM / 1000).toFixed(1)} ${ar ? "كم" : "km"}`;
+            const mins = Math.round(r.totalDurationS / 60);
+            const timeStr = mins < 1 ? (ar ? "< دقيقة" : "< 1m") : ar ? `${mins} د` : `${mins}m`;
+            return (
+              <button key={idx} onClick={() => onPickRoute(idx)} data-testid={`route-option-${idx}`}
+                className={`flex-1 rounded-2xl border-2 p-3 text-center transition-all ${isRec ? "border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-200/50" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}>
+                {isRec && (
+                  <div className="flex items-center justify-center gap-1 mb-1.5">
+                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wide">{ar ? "موصى به" : "Recommended"}</span>
+                  </div>
+                )}
+                <div className={`text-base font-black mb-1.5 ${isRec ? "text-emerald-700" : "text-gray-400"}`}>
+                  {ar ? `مسار ${labels[idx] ?? idx + 1}` : `Route ${labels[idx] ?? idx + 1}`}
+                </div>
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="flex items-center gap-1">
+                    <Route className={`w-3 h-3 flex-shrink-0 ${isRec ? "text-emerald-600" : "text-gray-400"}`} />
+                    <span className={`text-[13px] font-bold ${isRec ? "text-emerald-700" : "text-gray-600"}`}>{distStr}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Timer className={`w-3 h-3 flex-shrink-0 ${isRec ? "text-emerald-600" : "text-gray-400"}`} />
+                    <span className={`text-[12px] ${isRec ? "text-emerald-600" : "text-gray-500"}`}>{timeStr}</span>
+                  </div>
+                  <div className={`text-[10px] ${isRec ? "text-emerald-500" : "text-gray-400"}`}>
+                    {r.steps.length} {ar ? "خطوة" : "steps"}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Action row */}
+        <div className="px-4 pb-4">
+          <button onClick={() => onPickRoute(recommendedIndex)} data-testid="btn-start-best-route"
+            className="w-full py-3 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, #0E4D41 0%, #1a7a5e 100%)" }}>
+            <Navigation className="w-4 h-4" />
+            {ar ? "ابدأ التوجيه بأفضل مسار" : "Start Best Route"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PilgrimGuideMap() {
   const { lang, isRTL } = useLanguage();
   const { toast } = useToast();
@@ -658,6 +768,14 @@ export function PilgrimGuideMap() {
   } | null>(null);
   const [crowdAnalysis, setCrowdAnalysis] = useState("");
   const [crowdAnalysisLoading, setCrowdAnalysisLoading] = useState(false);
+
+  const [routeAnalysis, setRouteAnalysis] = useState<{
+    routes: NavRoute[];
+    facility: Facility;
+    recommendedIndex: number;
+    explanation: string;
+    analysisLoading: boolean;
+  } | null>(null);
 
   const [facilitySheet, setFacilitySheet] = useState<{ type: FacilityType; selectedId: string } | null>(null);
 
@@ -768,51 +886,54 @@ export function PilgrimGuideMap() {
     );
   };
 
-  const executeNavigation = async (facility: Facility) => {
-    setCrowdModal(null);
-    setNavLoading(true);
+  const buildNavData = (coords: [number, number][], steps: NavStep[], distM: number, durS: number, facility: Facility): NavRoute => ({
+    coords, steps,
+    totalDistM: distM,
+    totalDurationS: durS,
+    destination: facility,
+    startLat: myLat,
+    startLng: myLng,
+  });
 
-    const buildNavData = (coords: [number, number][], steps: NavStep[], distM: number, durS: number): NavRoute => ({
-      coords, steps,
-      totalDistM: distM,
-      totalDurationS: durS,
-      destination: facility,
-      startLat: myLat,
-      startLng: myLng,
+  const parseValhallaLeg = (leg: any, facility: Facility): NavRoute => {
+    const shapeCoords = decodePolyline(leg.shape);
+    const steps: NavStep[] = leg.maneuvers.map((m: any) => {
+      const type: string = m.type === 1 ? "depart" : m.type === 4 ? "arrive" : "turn";
+      const modifier = m.type === 12 ? "left" : m.type === 13 ? "right" : m.type === 24 ? "slight right" : m.type === 25 ? "slight left" : undefined;
+      const { icon, textAr, textEn } = maneuverToStep(type, modifier, m.street_names?.[0] || "");
+      return { icon, textAr, textEn, distanceM: Math.round(m.length * 1000), durationS: Math.round(m.time) };
     });
+    return buildNavData(shapeCoords, steps, Math.round(leg.summary.length * 1000), Math.round(leg.summary.time), facility);
+  };
 
-    let navData: NavRoute | null = null;
+  const fetchNavRoutes = async (facility: Facility): Promise<NavRoute[]> => {
+    const routes: NavRoute[] = [];
 
-    // ── Primary: Valhalla pedestrian (accurate Makkah footpaths) ──────────────
+    // Primary: Valhalla pedestrian with alternates
     try {
       const valRes = await fetch("https://valhalla1.openstreetmap.de/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          locations: [
-            { lon: myLng, lat: myLat },
-            { lon: facility.lng, lat: facility.lat },
-          ],
+          locations: [{ lon: myLng, lat: myLat }, { lon: facility.lng, lat: facility.lat }],
           costing: "pedestrian",
           costing_options: { pedestrian: { use_ferry: 0, use_living_streets: 1, walkway_factor: 0.9 } },
           directions_options: { language: ar ? "ar" : "en-US" },
+          alternates: 1,
         }),
       });
       const vd = await valRes.json();
-      if (!vd.trip?.legs?.[0]) throw new Error("No Valhalla route");
-      const leg = vd.trip.legs[0];
-      const shapeCoords = decodePolyline(leg.shape);
-      const steps: NavStep[] = leg.maneuvers.map((m: any) => {
-        const type: string = m.type === 1 ? "depart" : m.type === 4 ? "arrive" : "turn";
-        const modifier = m.type === 12 ? "left" : m.type === 13 ? "right" : m.type === 24 ? "slight right" : m.type === 25 ? "slight left" : undefined;
-        const { icon, textAr, textEn } = maneuverToStep(type, modifier, m.street_names?.[0] || "");
-        return { icon, textAr, textEn, distanceM: Math.round(m.length * 1000), durationS: Math.round(m.time) };
-      });
-      navData = buildNavData(shapeCoords, steps, Math.round(leg.summary.length * 1000), Math.round(leg.summary.time));
+      if (vd.trip?.legs?.[0]) {
+        routes.push(parseValhallaLeg(vd.trip.legs[0], facility));
+        // Parse alternate if available
+        if (vd.alternates?.[0]?.trip?.legs?.[0]) {
+          routes.push(parseValhallaLeg(vd.alternates[0].trip.legs[0], facility));
+        }
+      }
     } catch { /* fall to OSRM */ }
 
-    // ── Fallback: OSRM foot profile ────────────────────────────────────────────
-    if (!navData) {
+    // Fallback: OSRM
+    if (routes.length === 0) {
       try {
         const url = `https://router.project-osrm.org/route/v1/foot/${myLng},${myLat};${facility.lng},${facility.lat}?overview=full&geometries=geojson&steps=true`;
         const res = await fetch(url);
@@ -828,11 +949,38 @@ export function PilgrimGuideMap() {
             steps.push({ icon, textAr, textEn, distanceM: step.distance, durationS: step.duration });
           }
         }
-        navData = buildNavData(coords, steps, route.distance, route.duration);
+        routes.push(buildNavData(coords, steps, route.distance, route.duration, facility));
       } catch { /* fall to straight line */ }
     }
 
-    // ── Last resort: straight line ────────────────────────────────────────────
+    // Last resort: straight line
+    if (routes.length === 0) {
+      const distM = haversineM(myLat, myLng, facility.lat, facility.lng);
+      routes.push(buildNavData(
+        [[myLat, myLng], [facility.lat, facility.lng]],
+        [
+          { icon: "🚶", textAr: `توجه نحو ${facility.nameAr}`, textEn: `Head toward ${facility.nameEn}`, distanceM: distM, durationS: distM / 1.2 },
+          { icon: "🏁", textAr: "وصلت إلى وجهتك", textEn: "You have arrived", distanceM: 0, durationS: 0 },
+        ],
+        distM, distM / 1.2, facility
+      ));
+    }
+
+    return routes;
+  };
+
+  const executeNavigation = async (facility: Facility, prebuiltRoute?: NavRoute) => {
+    setCrowdModal(null);
+    setRouteAnalysis(null);
+    setNavLoading(true);
+
+    let navData: NavRoute | null = prebuiltRoute ?? null;
+
+    if (!navData) {
+      const fetched = await fetchNavRoutes(facility);
+      navData = fetched[0] ?? null;
+    }
+
     if (!navData) {
       const distM = haversineM(myLat, myLng, facility.lat, facility.lng);
       navData = buildNavData(
@@ -841,7 +989,7 @@ export function PilgrimGuideMap() {
           { icon: "🚶", textAr: `توجه نحو ${facility.nameAr}`, textEn: `Head toward ${facility.nameEn}`, distanceM: distM, durationS: distM / 1.2 },
           { icon: "🏁", textAr: "وصلت إلى وجهتك", textEn: "You have arrived", distanceM: 0, durationS: 0 },
         ],
-        distM, distM / 1.2
+        distM, distM / 1.2, facility
       );
       toast({ title: ar ? "⚠️ خريطة مباشرة — تحقق من الإنترنت" : "⚠️ Direct route — check internet", variant: "destructive" });
     } else {
@@ -863,38 +1011,82 @@ export function PilgrimGuideMap() {
     if (gpsStatus === "granted" && !customOrigin) startLiveTracking(navData);
   };
 
-  const handleNavigate = async (facility: Facility) => {
-    const score = getCrowdScore(facility.id, facility.type, currentHour);
-    if (score < 50) {
-      executeNavigation(facility);
-      return;
-    }
-    const alts: CrowdAlt[] = FACILITIES
-      .filter(f => f.type === facility.type && f.id !== facility.id)
-      .map(f => ({ facility: f, crowdScore: getCrowdScore(f.id, f.type, currentHour), distM: haversineM(myLat, myLng, f.lat, f.lng) }))
-      .sort((a, b) => a.crowdScore - b.crowdScore)
-      .slice(0, 3);
-    setCrowdModal({ facility, crowdScore: score, alternatives: alts });
-    setCrowdAnalysis("");
-    setCrowdAnalysisLoading(true);
+  const startRouteAnalysis = async (facility: Facility) => {
+    setNavLoading(true);
+    const fetchedRoutes = await fetchNavRoutes(facility);
+    setNavLoading(false);
+
+    const crowdScore = getCrowdScore(facility.id, facility.type, currentHour);
+
+    setRouteAnalysis({
+      routes: fetchedRoutes,
+      facility,
+      recommendedIndex: 0,
+      explanation: "",
+      analysisLoading: true,
+    });
+
+    // Fetch AI analysis in background
     try {
-      const res = await fetch("/api/crowd-analysis", {
+      const res = await fetch("/api/route-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          routes: fetchedRoutes.map(r => ({ distM: r.totalDistM, durationS: r.totalDurationS, stepsCount: r.steps.length })),
           facility: { nameAr: facility.nameAr, nameEn: facility.nameEn, type: facility.type },
-          alternatives: alts.map(a => ({ nameAr: a.facility.nameAr, nameEn: a.facility.nameEn, crowdScore: a.crowdScore, distM: a.distM })),
-          crowdScore: score,
+          crowdScore,
           lang,
           hour: currentHour,
         }),
       });
       const data = await res.json();
-      setCrowdAnalysis(data.analysis ?? "");
+      setRouteAnalysis(prev => prev ? {
+        ...prev,
+        recommendedIndex: data.recommendedIndex ?? 0,
+        explanation: data.explanation ?? "",
+        analysisLoading: false,
+      } : null);
     } catch {
-      setCrowdAnalysis(ar ? "تعذّر تحميل التحليل. تحقق من الاتصال." : "Failed to load analysis. Check your connection.");
-    } finally {
-      setCrowdAnalysisLoading(false);
+      setRouteAnalysis(prev => prev ? {
+        ...prev,
+        explanation: ar ? "تعذّر تحميل التحليل. تحقق من الاتصال." : "Could not load analysis. Check connection.",
+        analysisLoading: false,
+      } : null);
+    }
+  };
+
+  const handleNavigate = async (facility: Facility) => {
+    const score = getCrowdScore(facility.id, facility.type, currentHour);
+    if (score >= 50) {
+      const alts: CrowdAlt[] = FACILITIES
+        .filter(f => f.type === facility.type && f.id !== facility.id)
+        .map(f => ({ facility: f, crowdScore: getCrowdScore(f.id, f.type, currentHour), distM: haversineM(myLat, myLng, f.lat, f.lng) }))
+        .sort((a, b) => a.crowdScore - b.crowdScore)
+        .slice(0, 3);
+      setCrowdModal({ facility, crowdScore: score, alternatives: alts });
+      setCrowdAnalysis("");
+      setCrowdAnalysisLoading(true);
+      try {
+        const res = await fetch("/api/crowd-analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            facility: { nameAr: facility.nameAr, nameEn: facility.nameEn, type: facility.type },
+            alternatives: alts.map(a => ({ nameAr: a.facility.nameAr, nameEn: a.facility.nameEn, crowdScore: a.crowdScore, distM: a.distM })),
+            crowdScore: score,
+            lang,
+            hour: currentHour,
+          }),
+        });
+        const data = await res.json();
+        setCrowdAnalysis(data.analysis ?? "");
+      } catch {
+        setCrowdAnalysis(ar ? "تعذّر تحميل التحليل. تحقق من الاتصال." : "Failed to load analysis. Check your connection.");
+      } finally {
+        setCrowdAnalysisLoading(false);
+      }
+    } else {
+      startRouteAnalysis(facility);
     }
   };
 
@@ -1289,9 +1481,23 @@ export function PilgrimGuideMap() {
           alternatives={crowdModal.alternatives}
           analysis={crowdAnalysis}
           loading={crowdAnalysisLoading}
-          onNavigate={() => executeNavigation(crowdModal.facility)}
-          onPickAlt={(f) => { setCrowdModal(null); executeNavigation(f); }}
+          onNavigate={() => { setCrowdModal(null); startRouteAnalysis(crowdModal.facility); }}
+          onPickAlt={(f) => { setCrowdModal(null); startRouteAnalysis(f); }}
           onClose={() => setCrowdModal(null)}
+        />
+      )}
+
+      {routeAnalysis && (
+        <RouteAnalysisModal
+          ar={ar}
+          isRTL={isRTL}
+          routes={routeAnalysis.routes}
+          facility={routeAnalysis.facility}
+          recommendedIndex={routeAnalysis.recommendedIndex}
+          explanation={routeAnalysis.explanation}
+          analysisLoading={routeAnalysis.analysisLoading}
+          onPickRoute={(idx) => executeNavigation(routeAnalysis.facility, routeAnalysis.routes[idx])}
+          onClose={() => setRouteAnalysis(null)}
         />
       )}
     </div>
