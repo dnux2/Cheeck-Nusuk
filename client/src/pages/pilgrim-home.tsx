@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
-import { AlertTriangle, Map, MessageSquare, Languages, BookOpen, Star, Droplets, Clock, CheckCircle2, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle, Map, MessageSquare, Languages, BookOpen, Star, Droplets, Clock, CheckCircle2, ChevronRight, Stethoscope, UserSearch, Shield, X } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -32,23 +32,54 @@ const QUICK_ACTIONS = [
   { href: "/pilgrim/translator", iconEl: <Languages className="w-6 h-6" />,     titleAr: "المترجم", titleEn: "Translator", descAr: "ترجمة فورية بالذكاء الاصطناعي", descEn: "AI instant translation",         color: "text-accent"  },
 ];
 
+type EmergencyType = "Medical" | "Lost" | "Security";
+
+const EMERGENCY_TYPES: { type: EmergencyType; ar: string; en: string; icon: React.ReactNode; color: string }[] = [
+  { type: "Medical",  ar: "طوارئ طبية",   en: "Medical",       icon: <Stethoscope className="w-5 h-5" />, color: "border-red-400 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400" },
+  { type: "Lost",     ar: "ضائع / مفقود", en: "Lost / Missing", icon: <UserSearch className="w-5 h-5" />,  color: "border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" },
+  { type: "Security", ar: "تهديد أمني",   en: "Security Threat", icon: <Shield className="w-5 h-5" />,     color: "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400" },
+];
+
 export function PilgrimHomePage() {
   const { lang, isRTL } = useLanguage();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [sosSent, setSosSent] = useState(false);
+  const [showTypeModal, setShowTypeModal] = useState(false);
+  const [selectedType, setSelectedType] = useState<EmergencyType | null>(null);
 
   const { data: pilgrim } = useQuery<Pilgrim>({ queryKey: ["/api/pilgrims/1"] });
 
   const createEmergency = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/emergencies", {
-      pilgrimId: 1, type: "Medical", status: "Active",
-      locationLat: 21.4225, locationLng: 39.8262,
-    }),
+    mutationFn: (type: EmergencyType) =>
+      new Promise<void>((resolve, reject) => {
+        const send = (lat: number, lng: number) => {
+          apiRequest("POST", "/api/emergencies", {
+            pilgrimId: 1, type, status: "Active",
+            locationLat: lat, locationLng: lng,
+          }).then(() => resolve()).catch(reject);
+        };
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => send(pos.coords.latitude, pos.coords.longitude),
+            () => send(21.4225, 39.8262),
+            { timeout: 4000 }
+          );
+        } else {
+          send(21.4225, 39.8262);
+        }
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/emergencies"] });
       setSosSent(true);
-      toast({ title: ar ? "تم إرسال نداء الطوارئ" : "SOS Sent", description: ar ? "سيصلك المشرف قريباً" : "A supervisor will reach you soon" });
+      setShowTypeModal(false);
+      toast({
+        title: ar ? "✓ تم إرسال نداء الطوارئ" : "✓ SOS Sent",
+        description: ar ? "سيصلك المشرف قريباً — ابقَ في مكانك" : "A supervisor will reach you soon — stay where you are",
+      });
+    },
+    onError: () => {
+      toast({ title: ar ? "خطأ" : "Error", description: ar ? "فشل إرسال النداء، حاول مجدداً" : "Failed to send SOS, please try again", variant: "destructive" });
     },
   });
 
@@ -108,8 +139,8 @@ export function PilgrimHomePage() {
         {/* SOS button */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <button
-            onClick={() => !sosSent && createEmergency.mutate()}
-            disabled={sosSent}
+            onClick={() => !sosSent && setShowTypeModal(true)}
+            disabled={sosSent || createEmergency.isPending}
             className={`w-full py-4 rounded-3xl font-bold text-base flex flex-row items-center justify-center gap-3 transition-all shadow-md active:scale-[0.98]
               ${sosSent ? "bg-muted text-muted-foreground" : "text-white"}`}
             style={!sosSent ? { background: "linear-gradient(135deg, #f07070 0%, #c0392b 100%)" } : {}}
@@ -117,9 +148,77 @@ export function PilgrimHomePage() {
             data-testid="btn-sos-home"
           >
             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-            {sosSent ? (ar ? "✓ تم إرسال نداء الطوارئ" : "✓ SOS Sent — Help is on the way") : (ar ? "زر الطوارئ SOS" : "SOS Emergency")}
+            {sosSent
+              ? (ar ? "✓ تم إرسال نداء الطوارئ — ابقَ في مكانك" : "✓ SOS Sent — Help is on the way")
+              : createEmergency.isPending
+              ? (ar ? "جارٍ الإرسال…" : "Sending…")
+              : (ar ? "زر الطوارئ SOS" : "SOS Emergency")}
           </button>
         </motion.div>
+
+        {/* Emergency type modal */}
+        <AnimatePresence>
+          {showTypeModal && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowTypeModal(false); }}
+            >
+              <motion.div
+                initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="w-full max-w-md bg-card rounded-t-3xl p-6 pb-10 shadow-2xl border-t border-border"
+                dir={isRTL ? "rtl" : "ltr"}
+              >
+                <div className={`flex items-center justify-between mb-5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <div className={isRTL ? "text-right" : ""}>
+                    <h2 className="text-lg font-bold text-foreground">{ar ? "نوع الطوارئ" : "Emergency Type"}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">{ar ? "اختر نوع الطارئ ليصل المساعد المناسب" : "Select type so the right team responds"}</p>
+                  </div>
+                  <button onClick={() => setShowTypeModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/80" data-testid="btn-close-sos-modal">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 mb-5">
+                  {EMERGENCY_TYPES.map((et) => (
+                    <button
+                      key={et.type}
+                      onClick={() => setSelectedType(et.type)}
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${isRTL ? "flex-row-reverse" : ""}
+                        ${selectedType === et.type ? et.color + " border-opacity-100" : "border-border bg-secondary/30 text-foreground hover:border-primary/30"}`}
+                      data-testid={`btn-sos-type-${et.type.toLowerCase()}`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selectedType === et.type ? "bg-white/40 dark:bg-black/20" : "bg-secondary"}`}>
+                        {et.icon}
+                      </div>
+                      <div className={`flex-1 ${isRTL ? "text-right" : ""}`}>
+                        <div className="font-bold text-sm">{ar ? et.ar : et.en}</div>
+                      </div>
+                      {selectedType === et.type && (
+                        <div className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center flex-shrink-0">
+                          <div className="w-2.5 h-2.5 rounded-full bg-current" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => selectedType && createEmergency.mutate(selectedType)}
+                  disabled={!selectedType || createEmergency.isPending}
+                  className="w-full py-4 rounded-2xl font-bold text-white text-base disabled:opacity-40 transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f07070 0%, #c0392b 100%)" }}
+                  data-testid="btn-sos-confirm"
+                >
+                  {createEmergency.isPending
+                    ? (ar ? "جارٍ الإرسال…" : "Sending SOS…")
+                    : (ar ? "إرسال نداء الطوارئ 🚨" : "Send SOS Alert 🚨")}
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Quick actions */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>

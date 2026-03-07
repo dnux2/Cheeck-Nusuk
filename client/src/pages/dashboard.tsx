@@ -32,9 +32,9 @@ export function Dashboard() {
   const { data: alerts } = useAlerts();
   const { t, isRTL } = useLanguage();
 
-  const totalPilgrims = pilgrims?.length || 12450;
-  const activeEmergencies = emergencies?.filter(e => e.status === "Active").length || 3;
-  const activeAlerts = alerts?.filter(a => a.status === "Active").length || 12;
+  const totalPilgrims = pilgrims?.length ?? 0;
+  const activeEmergencies = emergencies?.filter(e => e.status === "Active").length ?? 0;
+  const activeAlerts = alerts?.filter(a => a.status === "Active").length ?? 0;
 
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-8" dir={isRTL ? "rtl" : "ltr"}>
