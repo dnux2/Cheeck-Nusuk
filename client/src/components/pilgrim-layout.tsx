@@ -86,6 +86,7 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => setMobileOpen(false)}
             className="w-full py-2.5 rounded-2xl bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold text-sm flex flex-row items-center justify-center gap-2 transition-colors shadow-sm"
+            dir="ltr"
             data-testid="btn-sos-sidebar"
           >
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />

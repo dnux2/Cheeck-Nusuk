@@ -112,6 +112,7 @@ export function PilgrimHomePage() {
             disabled={sosSent}
             className={`w-full py-4 rounded-3xl font-bold text-base flex flex-row items-center justify-center gap-3 transition-all shadow-md active:scale-[0.98]
               ${sosSent ? "bg-muted text-muted-foreground" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}`}
+            dir="ltr"
             data-testid="btn-sos-home"
           >
             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
