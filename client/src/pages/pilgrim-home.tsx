@@ -111,7 +111,8 @@ export function PilgrimHomePage() {
             onClick={() => !sosSent && createEmergency.mutate()}
             disabled={sosSent}
             className={`w-full py-4 rounded-3xl font-bold text-base flex flex-row items-center justify-center gap-3 transition-all shadow-md active:scale-[0.98]
-              ${sosSent ? "bg-muted text-muted-foreground" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}`}
+              ${sosSent ? "bg-muted text-muted-foreground" : "text-white"}`}
+            style={!sosSent ? { background: "linear-gradient(135deg, #c49a3c 0%, #8a6520 100%)" } : {}}
             dir="ltr"
             data-testid="btn-sos-home"
           >
