@@ -213,7 +213,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <>
                   <div className={`hidden sm:flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <div className={isRTL ? "text-right" : "text-right"}>
-                      <p className="text-xs font-bold text-foreground leading-tight">{displayName}</p>
+                      <p className="text-xs font-bold text-foreground leading-tight">
+                        <span className="text-muted-foreground font-normal">{lang === "ar" ? "المشرف: " : "Supervisor: "}</span>{displayName}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">{t("sector")}</p>
                     </div>
                   </div>
