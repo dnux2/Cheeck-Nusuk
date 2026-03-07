@@ -232,14 +232,8 @@ export function PilgrimWalletPage() {
           </div>
           <div className="px-5 py-4 space-y-3">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">{ar ? "رقم هاتفي" : "My Phone"}</div>
-              <div className="text-sm font-semibold text-foreground" dir="ltr">{pilgrim?.phone || (ar ? "غير محدد" : "Not set")}</div>
-            </div>
-            <div>
               <div className="text-xs text-muted-foreground mb-1">{ar ? "رقمي للتواصل الطارئ" : "Emergency Contact"}</div>
-              <div className={`text-sm font-semibold ${pilgrim?.emergencyContact ? "text-foreground" : "text-amber-600 dark:text-amber-400"}`}>
-                {pilgrim?.emergencyContact || (ar ? "غير محدد — اضغط تحديث" : "Not set — tap Update")}
-              </div>
+              <div className="text-sm font-semibold text-foreground" dir="ltr">{pilgrim?.phone || (ar ? "غير محدد" : "Not set")}</div>
             </div>
             <div className="border-t border-border pt-3 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
