@@ -138,8 +138,8 @@ function makeSupervisorIcon() {
 
 // ── OSRM routing ──────────────────────────────────────────────────────────────
 
-interface NavStep { instruction: string; distanceM: number; type: string; modifier: string; }
-interface NavRoute {
+export interface NavStep { instruction: string; distanceM: number; type: string; modifier: string; }
+export interface NavRoute {
   coords: [number, number][];
   distanceM: number;
   durationS: number;
@@ -344,14 +344,15 @@ interface RealMapProps {
   sectorData: { id: string; load: number; status: string }[];
   onZoneClick?: (zone: Zone) => void;
   highlightedPilgrimId?: number;
+  navRoute?: NavRoute | null;
+  onNavRouteChange?: (r: NavRoute | null) => void;
 }
 
-export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimId }: RealMapProps) {
+export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimId, navRoute = null, onNavRouteChange }: RealMapProps) {
   const { lang, isRTL } = useLanguage();
   const ar = lang === "ar";
   const { toast } = useToast();
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
-  const [navRoute, setNavRoute] = useState<NavRoute | null>(null);
   const [loadingNav, setLoadingNav] = useState(false);
   const [showServices, setShowServices] = useState(false);
   const [activeTypes, setActiveTypes] = useState<Set<FacilityType>>(new Set(["hospital", "water", "mosque", "bathroom", "transport"]));
@@ -373,14 +374,14 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
 
   const handleNavigate = useCallback(async (lat: number, lng: number, targetName: string, targetColor: string) => {
     setLoadingNav(true);
-    setNavRoute(null);
+    onNavRouteChange?.(null);
     const route = await fetchOSRM(ar, SUPERVISOR_POS.lat, SUPERVISOR_POS.lng, lat, lng, targetName, targetColor);
     setLoadingNav(false);
     if (!route) {
       toast({ title: ar ? "تعذّر حساب المسار" : "Route unavailable", description: ar ? "لم نتمكن من الاتصال بخدمة التوجيه." : "Could not connect to routing service.", variant: "destructive" });
       return;
     }
-    setNavRoute(route);
+    onNavRouteChange?.(route);
     setSelectedZone(null);
   }, [ar, toast]);
 
@@ -595,62 +596,6 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
               <button className="py-2.5 px-3 bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/80 transition-colors">
                 <Activity className="w-4 h-4" />
               </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Navigation panel ──────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {navRoute && (
-          <motion.div
-            key="nav-panel"
-            initial={{ opacity: 0, y: 60 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 60 }}
-            transition={{ type: "spring", damping: 22, stiffness: 260 }}
-            className="absolute bottom-0 left-0 right-0 bg-card/97 backdrop-blur-xl border-t border-border shadow-2xl"
-            style={{ zIndex: 860, maxHeight: "42%" }}
-            dir={isRTL ? "rtl" : "ltr"}
-          >
-            <div className={`flex items-center gap-3 px-4 pt-3 pb-2 border-b border-border ${isRTL ? "flex-row-reverse" : ""}`}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: navRoute.targetColor + "22" }}>
-                <Navigation className="w-4 h-4" style={{ color: navRoute.targetColor }} />
-              </div>
-              <div className={`flex-1 min-w-0 ${isRTL ? "text-right" : ""}`}>
-                <div className="font-bold text-sm text-foreground truncate">
-                  {ar ? `التوجه إلى: ${navRoute.targetName}` : `Navigate to: ${navRoute.targetName}`}
-                </div>
-                <div className={`flex items-center gap-3 text-xs text-muted-foreground mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <span className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <MapPin className="w-3 h-3" />
-                    {formatDist(navRoute.distanceM, ar)}
-                  </span>
-                  <span className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <Clock className="w-3 h-3" />
-                    {formatDuration(navRoute.durationS, ar)}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setNavRoute(null)}
-                className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0 text-muted-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="overflow-y-auto px-3 py-2" style={{ maxHeight: 180 }}>
-              {navRoute.steps.filter(s => s.distanceM > 0 || s.type === "arrive").map((step, i) => (
-                <div key={i} className={`flex items-center gap-3 py-2 border-b border-border/40 last:border-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                    {stepIcon(step.type, step.modifier)}
-                  </div>
-                  <span className={`flex-1 text-xs text-foreground ${isRTL ? "text-right" : ""}`}>{step.instruction}</span>
-                  {step.distanceM > 0 && (
-                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0">{formatDist(step.distanceM, ar)}</span>
-                  )}
-                </div>
-              ))}
             </div>
           </motion.div>
         )}

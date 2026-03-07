@@ -1,9 +1,26 @@
 import { useState, useEffect } from "react";
-import { RealMap } from "@/components/real-map";
-import { AlertCircle, RefreshCw, Radio } from "lucide-react";
+import { RealMap, type NavRoute } from "@/components/real-map";
+import { AlertCircle, RefreshCw, Radio, Navigation, MapPin, Clock, ArrowLeft, ArrowRight, ArrowUp, CornerDownLeft, Footprints, X, ChevronDown, ChevronUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePilgrims } from "@/hooks/use-pilgrims";
 import { useLanguage } from "@/contexts/language-context";
 import { useSearch } from "wouter";
+
+function fmtDist(m: number, ar: boolean) {
+  return m >= 1000 ? `${(m / 1000).toFixed(1)} ${ar ? "كم" : "km"}` : `${m} ${ar ? "م" : "m"}`;
+}
+function fmtDur(s: number, ar: boolean) {
+  const mins = Math.max(1, Math.round(s / 60));
+  return ar ? `${mins} دقيقة مشياً` : `${mins} min walk`;
+}
+function StepIcon({ type, modifier }: { type: string; modifier: string }) {
+  if (type === "arrive") return <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />;
+  if (type === "depart") return <Footprints className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />;
+  if (modifier === "left" || modifier === "sharp left") return <ArrowLeft className="w-3.5 h-3.5 text-foreground/70 flex-shrink-0" />;
+  if (modifier === "right" || modifier === "sharp right") return <ArrowRight className="w-3.5 h-3.5 text-foreground/70 flex-shrink-0" />;
+  if (modifier === "uturn") return <CornerDownLeft className="w-3.5 h-3.5 text-foreground/70 flex-shrink-0" />;
+  return <ArrowUp className="w-3.5 h-3.5 text-foreground/70 flex-shrink-0" />;
+}
 
 interface SectorData {
   id: string;
@@ -49,6 +66,8 @@ export function CrowdManagementPage() {
 
   const [sectors, setSectors] = useState<SectorData[]>(BASE_SECTORS);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [navRoute, setNavRoute] = useState<NavRoute | null>(null);
+  const [stepsExpanded, setStepsExpanded] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -101,11 +120,97 @@ export function CrowdManagementPage() {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-        {/* Map + legend below */}
+        {/* Map + nav panel + legend below */}
         <div className="flex-1 flex flex-col gap-2 min-h-0">
           <div className="flex-1 rounded-2xl overflow-hidden border border-border/50 shadow-lg relative min-h-[360px]">
-            <RealMap pilgrims={pilgrims} sectorData={sectors} highlightedPilgrimId={highlightedPilgrimId} />
+            <RealMap
+              pilgrims={pilgrims}
+              sectorData={sectors}
+              highlightedPilgrimId={highlightedPilgrimId}
+              navRoute={navRoute}
+              onNavRouteChange={(r) => { setNavRoute(r); if (r) setStepsExpanded(false); }}
+            />
           </div>
+
+          {/* Navigation panel — OUTSIDE the map, fully visible */}
+          <AnimatePresence>
+            {navRoute && (
+              <motion.div
+                key="nav-panel-outer"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ type: "spring", damping: 20, stiffness: 280 }}
+                className="flex-shrink-0 rounded-2xl border border-border shadow-lg overflow-hidden bg-card"
+                dir={isRTL ? "rtl" : "ltr"}
+              >
+                {/* Header row */}
+                <div className={`flex items-center gap-3 px-4 py-3 bg-card border-b border-border ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: navRoute.targetColor + "20" }}>
+                    <Navigation className="w-5 h-5" style={{ color: navRoute.targetColor }} />
+                  </div>
+                  <div className={`flex-1 min-w-0 ${isRTL ? "text-right" : ""}`}>
+                    <div className="font-bold text-sm text-foreground truncate">
+                      {ar ? `التوجه إلى: ${navRoute.targetName}` : `Navigate to: ${navRoute.targetName}`}
+                    </div>
+                    <div className={`flex items-center gap-4 text-xs text-muted-foreground mt-0.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className={`flex items-center gap-1 font-semibold ${isRTL ? "flex-row-reverse" : ""}`} style={{ color: navRoute.targetColor }}>
+                        <MapPin className="w-3 h-3" />
+                        {fmtDist(navRoute.distanceM, ar)}
+                      </span>
+                      <span className={`flex items-center gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <Clock className="w-3 h-3" />
+                        {fmtDur(navRoute.durationS, ar)}
+                      </span>
+                      <span className="text-muted-foreground/50">·</span>
+                      <span>{navRoute.steps.filter(s => s.distanceM > 0 || s.type === "arrive").length} {ar ? "خطوة" : "steps"}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setStepsExpanded(v => !v)}
+                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors flex-shrink-0 text-muted-foreground"
+                    title={stepsExpanded ? (ar ? "إخفاء الخطوات" : "Hide steps") : (ar ? "عرض الخطوات" : "Show steps")}
+                  >
+                    {stepsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => setNavRoute(null)}
+                    className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0 text-muted-foreground"
+                    title={ar ? "إنهاء التنقل" : "End navigation"}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Steps list — collapsible */}
+                <AnimatePresence>
+                  {stepsExpanded && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: "auto" }}
+                      exit={{ height: 0 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="overflow-y-auto max-h-52 px-3 py-2">
+                        {navRoute.steps.filter(s => s.distanceM > 0 || s.type === "arrive").map((step, i) => (
+                          <div key={i} className={`flex items-center gap-3 py-2 border-b border-border/40 last:border-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+                            <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                              <StepIcon type={step.type} modifier={step.modifier} />
+                            </div>
+                            <span className={`flex-1 text-xs text-foreground ${isRTL ? "text-right" : ""}`}>{step.instruction}</span>
+                            {step.distanceM > 0 && (
+                              <span className="text-xs text-muted-foreground font-mono flex-shrink-0">{fmtDist(step.distanceM, ar)}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Legend strip — outside the map so it never covers content */}
           <div className={`flex-shrink-0 flex flex-wrap items-center gap-x-5 gap-y-1.5 px-2 py-1.5 bg-card border border-border/60 rounded-xl text-xs text-muted-foreground ${isRTL ? "flex-row-reverse" : ""}`} dir={isRTL ? "rtl" : "ltr"}>
