@@ -169,9 +169,9 @@ export function PilgrimHomePage() {
         {/* Prayer times */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="bg-card border border-border rounded-3xl overflow-hidden"
+          className="bg-gradient-to-b from-[#f5e6c8] to-white dark:from-[#3a2a12] dark:to-card border border-[#e8d4a0] dark:border-border rounded-3xl overflow-hidden"
         >
-          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <div className="px-5 py-4 border-b border-[#e8d4a0] dark:border-border flex items-center gap-2">
             <Clock className="w-4 h-4 text-accent" />
             <span className="font-bold text-sm text-foreground">{ar ? "مواقيت الصلاة — مكة المكرمة" : "Prayer Times — Makkah"}</span>
           </div>
