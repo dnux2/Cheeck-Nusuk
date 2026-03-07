@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { RealMap } from "@/components/real-map";
-import { AlertCircle, Maximize2, Layers, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Radio } from "lucide-react";
 import { usePilgrims } from "@/hooks/use-pilgrims";
 import { useLanguage } from "@/contexts/language-context";
+import { useSearch } from "wouter";
 
 interface SectorData {
   id: string;
@@ -36,11 +37,19 @@ export function CrowdManagementPage() {
   const { data: pilgrims } = usePilgrims();
   const { t, isRTL, lang } = useLanguage();
   const ar = lang === "ar";
+  const search = useSearch();
+
+  const highlightedPilgrimId = search
+    ? (Number(new URLSearchParams(search).get("highlight")) || undefined)
+    : undefined;
+
+  const highlightedPilgrim = highlightedPilgrimId
+    ? pilgrims?.find(p => p.id === highlightedPilgrimId)
+    : undefined;
 
   const [sectors, setSectors] = useState<SectorData[]>(BASE_SECTORS);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  // Simulate live updates every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setSectors(prev => prev.map(s => {
@@ -57,35 +66,44 @@ export function CrowdManagementPage() {
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto h-[calc(100vh-5rem)] flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className={`flex justify-between items-center mb-6 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-        <div className={isRTL ? "text-right" : ""}>
-          <h1 className="text-3xl font-bold text-foreground">{t("crowdMonitoring")}</h1>
-          <p className="text-muted-foreground mt-1 flex items-center gap-2">
-            {t("crowdManagementDesc")}
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-mono">
+      <div className="flex-shrink-0 mb-6">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isRTL ? "sm:flex-row-reverse" : ""}`}>
+          <div className={isRTL ? "text-right" : ""}>
+            <h1 className="text-3xl font-bold text-foreground">{t("crowdMonitoring")}</h1>
+            <p className="text-muted-foreground mt-1">{t("crowdManagementDesc")}</p>
+          </div>
+          <div className={`flex items-center gap-2 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
               <RefreshCw className="w-3 h-3 animate-spin" />
-              {ar ? "تحديث مباشر" : "Live"}
-            </span>
-          </p>
+              <span dir="ltr">{lastUpdated.toLocaleTimeString()}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg border border-border text-xs font-semibold">
+              <Radio className="w-3.5 h-3.5" />
+              {ar ? "بث مباشر" : "Live"}
+            </div>
+          </div>
         </div>
-        <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <span className="text-xs text-muted-foreground font-mono hidden sm:block" dir="ltr">
-            {lastUpdated.toLocaleTimeString()}
-          </span>
-          <button className={`px-4 py-2 bg-secondary text-secondary-foreground font-semibold rounded-xl flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <Layers className="w-4 h-4" />
-            {t("layers")}
-          </button>
-          <button className="p-2 bg-secondary text-secondary-foreground rounded-xl">
-            <Maximize2 className="w-5 h-5" />
-          </button>
-        </div>
+
+        {/* Highlighted pilgrim strip */}
+        {highlightedPilgrim && (
+          <div className={`mt-3 flex items-center gap-3 p-3 bg-primary/10 border border-primary/30 rounded-xl text-sm font-semibold text-primary ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
+              {highlightedPilgrim.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+            </div>
+            <div className={`flex-1 ${isRTL ? "text-right" : ""}`}>
+              <span className="text-foreground">{ar ? "جارٍ تتبع الحاج: " : "Tracking pilgrim: "}</span>
+              <span>{highlightedPilgrim.name}</span>
+              <span className="text-muted-foreground font-normal mx-1">·</span>
+              <span className="text-muted-foreground font-normal">{highlightedPilgrim.nationality}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
         {/* Map container */}
         <div className="flex-1 rounded-2xl overflow-hidden border border-border/50 shadow-lg relative min-h-[400px]">
-          <RealMap pilgrims={pilgrims} sectorData={sectors} />
+          <RealMap pilgrims={pilgrims} sectorData={sectors} highlightedPilgrimId={highlightedPilgrimId} />
         </div>
 
         {/* Sector status sidebar */}

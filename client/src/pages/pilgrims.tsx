@@ -1,18 +1,21 @@
 import { usePilgrims, useCreatePilgrim } from "@/hooks/use-pilgrims";
 import { useState } from "react";
-import { Search, Plus, MapPin, Eye, ShieldAlert } from "lucide-react";
+import { Search, Plus, MapPin, Eye, ShieldAlert, Navigation } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
 import { PilgrimPopup } from "@/components/pilgrim-popup";
 import { type Pilgrim } from "@shared/schema";
+import { useLocation } from "wouter";
 
 export function PilgrimsPage() {
   const { data: pilgrims, isLoading } = usePilgrims();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const createPilgrim = useCreatePilgrim();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, lang } = useLanguage();
+  const ar = lang === "ar";
+  const [, navigate] = useLocation();
 
   const [isModalOpen, setModalOpen] = useState(false);
   const [selectedPilgrim, setSelectedPilgrim] = useState<Pilgrim | null>(null);
@@ -174,14 +177,24 @@ export function PilgrimsPage() {
                       )}
                     </td>
                     <td className={`p-4 ${isRTL ? "text-left" : "text-right"}`}>
-                      <button
-                        data-testid={`button-view-pilgrim-${p.id}`}
-                        onClick={(e) => { e.stopPropagation(); setSelectedPilgrim(p); }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold text-sm transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
-                      >
-                        <Eye className="w-4 h-4" />
-                        {t("viewPilgrim")}
-                      </button>
+                      <div className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse justify-start" : "justify-end"}`}>
+                        <button
+                          data-testid={`button-track-pilgrim-${p.id}`}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/crowd-management?highlight=${p.id}`); }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/70 font-semibold text-sm transition-colors border border-border ${isRTL ? "flex-row-reverse" : ""}`}
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          {ar ? "تتبع" : "Track"}
+                        </button>
+                        <button
+                          data-testid={`button-view-pilgrim-${p.id}`}
+                          onClick={(e) => { e.stopPropagation(); setSelectedPilgrim(p); }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-sm transition-colors ${isRTL ? "flex-row-reverse" : ""}`}
+                        >
+                          <Eye className="w-4 h-4" />
+                          {t("viewPilgrim")}
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))

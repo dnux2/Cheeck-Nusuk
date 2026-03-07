@@ -72,7 +72,7 @@ export function PilgrimPopup({ pilgrim, onClose }: PilgrimPopupProps) {
 
   const handleTrackRoute = () => {
     onClose();
-    navigate("/crowd-management");
+    navigate(`/crowd-management?highlight=${pilgrim.id}`);
   };
 
   const handleSendMessage = () => {
