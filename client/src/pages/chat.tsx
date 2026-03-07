@@ -5,8 +5,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type ChatMessage, type Pilgrim } from "@shared/schema";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Users, MessageSquare, ChevronLeft, ChevronRight, PanelLeftOpen, PanelLeftClose, Wifi, WifiOff } from "lucide-react";
-import { format } from "date-fns";
+import { Send, Users, MessageSquare, ChevronLeft, ChevronRight, PanelLeftOpen, PanelLeftClose, Wifi, WifiOff, Bell, X } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
 import { useSearch } from "wouter";
 import { useChatWebSocket } from "@/hooks/use-chat-ws";
 
@@ -35,6 +36,9 @@ export function ChatPage() {
   const [lastRead, setLastRead] = useState<Record<string, number>>(() => loadLastRead());
   const lastReadRef = useRef(lastRead);
   const initializedRef = useRef(false);
+  const [initialized, setInitialized] = useState(false);
+  const loginNotifShownRef = useRef(false);
+  const [loginNotif, setLoginNotif] = useState<{ count: number; names: string[] } | null>(null);
   const selectedRef = useRef(selectedPilgrimId);
   selectedRef.current = selectedPilgrimId;
 
@@ -75,6 +79,7 @@ export function ChatPage() {
       lastReadRef.current = updated;
       setLastRead(updated);
       saveLastRead(updated);
+      setInitialized(true);
     }
   }, [messages]);
 
@@ -135,6 +140,43 @@ export function ChatPage() {
     const fromPilgrims = (pilgrims ?? []).reduce((acc, p) => acc + getUnread(p.id), 0);
     return fromPilgrims + getUnread(null);
   }, [pilgrims, getUnread]);
+
+  const lastMsgTime = useMemo(() => {
+    const map: Record<number, { time: number; text: string; fromPilgrim: boolean }> = {};
+    messages.forEach(m => {
+      if (m.pilgrimId) {
+        const t = new Date(m.timestamp ?? 0).getTime();
+        if (!map[m.pilgrimId] || t > map[m.pilgrimId].time) {
+          map[m.pilgrimId] = {
+            time: t,
+            text: m.message.length > 28 ? m.message.slice(0, 28) + "…" : m.message,
+            fromPilgrim: m.senderRole === "pilgrim",
+          };
+        }
+      }
+    });
+    return map;
+  }, [messages]);
+
+  const sortedPilgrims = useMemo(() => {
+    if (!pilgrims) return [];
+    return [...pilgrims].sort((a, b) => {
+      const ta = lastMsgTime[a.id]?.time ?? 0;
+      const tb = lastMsgTime[b.id]?.time ?? 0;
+      return tb - ta;
+    });
+  }, [pilgrims, lastMsgTime]);
+
+  useEffect(() => {
+    if (!loginNotifShownRef.current && initialized && totalUnread > 0 && pilgrims && pilgrims.length > 0) {
+      loginNotifShownRef.current = true;
+      const names: string[] = [];
+      (pilgrims ?? []).forEach(p => {
+        if (getUnread(p.id) > 0) names.push(p.name);
+      });
+      setLoginNotif({ count: totalUnread, names: names.slice(0, 3) });
+    }
+  }, [initialized, totalUnread, pilgrims]);
 
   const displayMessages = selectedPilgrimId === null
     ? messages.filter(m => m.pilgrimId === null)
@@ -240,29 +282,43 @@ export function ChatPage() {
                 );
               })()}
 
-              {/* Individual pilgrim rows */}
-              {pilgrims?.map((p: Pilgrim) => {
+              {/* Individual pilgrim rows — sorted by most recent message */}
+              {sortedPilgrims.map((p: Pilgrim) => {
                 const isActive = selectedPilgrimId === p.id;
                 const unread = getUnread(p.id);
+                const last = lastMsgTime[p.id];
+                const timeAgo = last
+                  ? formatDistanceToNow(new Date(last.time), { addSuffix: false, locale: ar ? arLocale : undefined })
+                  : null;
                 return (
                   <button
                     key={p.id}
                     data-testid={`chat-thread-pilgrim-${p.id}`}
                     onClick={() => selectPilgrim(p.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-start ${isRTL ? "flex-row-reverse text-right" : ""}
-                      ${isActive ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-secondary text-foreground"}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-start ${isRTL ? "flex-row-reverse text-right" : ""}
+                      ${isActive ? "bg-primary text-primary-foreground shadow-md" : unread > 0 ? "bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/30 text-foreground" : "hover:bg-secondary text-foreground"}`}
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isActive ? "bg-white/20 text-white" : "bg-primary/10 text-primary"}`}>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm ${isActive ? "bg-white/20 text-white" : unread > 0 ? "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400" : "bg-primary/10 text-primary"}`}>
                       {p.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`font-semibold text-sm truncate ${isActive ? "text-primary-foreground" : ""}`}>{p.name}</p>
-                      <p className={`text-xs truncate ${isActive ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{p.nationality}</p>
+                      <div className={`flex items-center justify-between gap-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+                        <p className={`font-semibold text-sm truncate ${isActive ? "text-primary-foreground" : ""}`}>{p.name}</p>
+                        {timeAgo && (
+                          <span className={`text-[10px] flex-shrink-0 ${isActive ? "text-primary-foreground/60" : "text-muted-foreground"}`}>{timeAgo}</span>
+                        )}
+                      </div>
+                      <p className={`text-xs truncate ${isActive ? "text-primary-foreground/70" : unread > 0 ? "text-foreground/70 font-medium" : "text-muted-foreground"}`}>
+                        {last
+                          ? (last.fromPilgrim ? "" : (ar ? "أنت: " : "You: ")) + last.text
+                          : p.nationality
+                        }
+                      </p>
                     </div>
                     {unread > 0 && !isActive && (
                       <span
                         data-testid={`badge-unread-pilgrim-${p.id}`}
-                        className="min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 flex-shrink-0"
+                        className="min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 flex-shrink-0 shadow-sm"
                       >
                         {unread}
                       </span>
@@ -359,6 +415,55 @@ export function ChatPage() {
             </button>
           )}
         </div>
+
+        {/* Login notification banner */}
+        <AnimatePresence>
+          {loginNotif && (
+            <motion.div
+              key="login-notif"
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              data-testid="banner-login-notification"
+              className={`flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 ${isRTL ? "flex-row-reverse text-right" : ""}`}
+            >
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-amber-800 dark:text-amber-300">
+                  {ar
+                    ? `📨 لديك ${loginNotif.count} رسالة غير مقروءة`
+                    : `📨 You have ${loginNotif.count} unread message${loginNotif.count > 1 ? "s" : ""}`
+                  }
+                </p>
+                {loginNotif.names.length > 0 && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    {ar
+                      ? `من: ${loginNotif.names.join("، ")}${loginNotif.count > loginNotif.names.length ? " وآخرين" : ""}`
+                      : `From: ${loginNotif.names.join(", ")}${loginNotif.count > loginNotif.names.length ? " and others" : ""}`
+                    }
+                  </p>
+                )}
+                <button
+                  data-testid="button-open-from-notif"
+                  onClick={() => { setSidebarOpen(true); setLoginNotif(null); }}
+                  className="mt-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 underline underline-offset-2 transition-colors"
+                >
+                  {ar ? "عرض الرسائل ←" : "View messages →"}
+                </button>
+              </div>
+              <button
+                data-testid="button-dismiss-notif"
+                onClick={() => setLoginNotif(null)}
+                className="p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-400 transition-colors flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3 bg-background/50">
