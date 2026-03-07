@@ -17,7 +17,7 @@ import { eq, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Pilgrims
-  getPilgrims(): Promise<Pilgrim[]>;
+  getPilgrims(opts?: { limit?: number; offset?: number }): Promise<Pilgrim[]>;
   getPilgrim(id: number): Promise<Pilgrim | undefined>;
   createPilgrim(pilgrim: InsertPilgrim): Promise<Pilgrim>;
   updatePilgrimLocation(id: number, lat: number, lng: number): Promise<Pilgrim>;
@@ -38,8 +38,10 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Pilgrims
-  async getPilgrims(): Promise<Pilgrim[]> {
-    return await db.select().from(pilgrims);
+  async getPilgrims(opts?: { limit?: number; offset?: number }): Promise<Pilgrim[]> {
+    const limit = opts?.limit ?? 100;
+    const offset = opts?.offset ?? 0;
+    return await db.select().from(pilgrims).limit(limit).offset(offset);
   }
 
   async getPilgrim(id: number): Promise<Pilgrim | undefined> {
@@ -81,7 +83,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(emergencies.id, id))
       .returning();
 
-    if (resolved && resolved.pilgrimId) {
+    if (!resolved) throw new Error(`Emergency with id ${id} not found`);
+
+    if (resolved.pilgrimId) {
       const activeEmergencies = await db.select()
         .from(emergencies)
         .where(eq(emergencies.pilgrimId, resolved.pilgrimId));

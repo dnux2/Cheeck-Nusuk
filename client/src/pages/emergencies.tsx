@@ -1,15 +1,53 @@
+import { useState, useRef, useEffect } from "react";
 import { useEmergencies, useResolveEmergency } from "@/hooks/use-emergencies";
 import { AlertTriangle, MapPin, CheckCircle, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+function playBeep() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+  } catch {
+    // AudioContext not available
+  }
+}
 
 export function EmergenciesPage() {
   const { data: emergencies } = useEmergencies();
   const resolveEmergency = useResolveEmergency();
   const { t, isRTL } = useLanguage();
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const prevCountRef = useRef<number>(0);
 
   const activeCount = emergencies?.filter(e => e.status === "Active").length ?? 0;
+
+  useEffect(() => {
+    if (activeCount > prevCountRef.current) {
+      playBeep();
+    }
+    prevCountRef.current = activeCount;
+  }, [activeCount]);
 
   return (
     <div className="p-6 md:p-8 max-w-[1200px] mx-auto" dir={isRTL ? "rtl" : "ltr"}>
@@ -86,7 +124,7 @@ export function EmergenciesPage() {
             {em.status === "Active" ? (
               <button
                 data-testid={`button-resolve-emergency-${em.id}`}
-                onClick={() => resolveEmergency.mutate(em.id)}
+                onClick={() => setConfirmId(em.id)}
                 disabled={resolveEmergency.isPending}
                 className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
@@ -101,6 +139,39 @@ export function EmergenciesPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmId !== null} onOpenChange={(open) => { if (!open) setConfirmId(null); }}>
+        <AlertDialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className={isRTL ? "text-right" : ""}>
+              {isRTL ? "تأكيد إنهاء الحالة" : "Confirm Resolve Emergency"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className={isRTL ? "text-right" : ""}>
+              {isRTL
+                ? "هل أنت متأكد من إنهاء هذه الحالة؟ لا يمكن التراجع عن هذا الإجراء."
+                : "Are you sure you want to mark this emergency as resolved? This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={isRTL ? "flex-row-reverse" : ""}>
+            <AlertDialogCancel data-testid="button-cancel-resolve">
+              {isRTL ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-resolve"
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => {
+                if (confirmId !== null) {
+                  resolveEmergency.mutate(confirmId);
+                  setConfirmId(null);
+                }
+              }}
+            >
+              {isRTL ? "نعم، إنهاء الحالة" : "Yes, Resolve"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -124,8 +124,8 @@ function zoneColor(status: Zone["status"]) {
   }
 }
 
-function makePilgrimIcon(emergency: boolean) {
-  const color = emergency ? "#EF4444" : "#10B981";
+function makePilgrimIcon(emergency: boolean, expired: boolean) {
+  const color = emergency ? "#EF4444" : expired ? "#F59E0B" : "#10B981";
   return L.divIcon({
     className: "",
     html: `<div style="
@@ -251,7 +251,8 @@ export function RealMap({ pilgrims, sectorData, onZoneClick }: RealMapProps) {
         {/* Pilgrim markers */}
         {pilgrims?.map(pilgrim => {
           if (!pilgrim.locationLat || !pilgrim.locationLng) return null;
-          const icon = makePilgrimIcon(!!pilgrim.emergencyStatus);
+          const expired = pilgrim.permitStatus === "Expired";
+          const icon = makePilgrimIcon(!!pilgrim.emergencyStatus, expired);
           return (
             <Marker
               key={pilgrim.id}
@@ -259,16 +260,33 @@ export function RealMap({ pilgrims, sectorData, onZoneClick }: RealMapProps) {
               icon={icon}
             >
               <Popup>
-                <div style={{ fontFamily: "sans-serif", minWidth: 160, direction: isRTL ? "rtl" : "ltr" }}>
+                <div style={{ fontFamily: "sans-serif", minWidth: 180, direction: isRTL ? "rtl" : "ltr" }}>
                   <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{pilgrim.name}</div>
                   <div style={{ fontSize: 11, color: "#888", marginBottom: 2 }}>{pilgrim.nationality}</div>
-                  <div style={{ fontSize: 11, marginBottom: 2 }}>{ar ? "التصريح:" : "Permit:"} <b style={{ color: pilgrim.permitStatus === "Valid" ? "#10B981" : "#EF4444" }}>{pilgrim.permitStatus}</b></div>
-                  <div style={{ fontSize: 11 }}>{ar ? "المجموعة:" : "Group:"} {pilgrim.campaignGroup}</div>
+                  <div style={{ fontSize: 11, marginBottom: 2 }}>
+                    {ar ? "المجموعة:" : "Group:"} {pilgrim.campaignGroup}
+                  </div>
+                  <div style={{ fontSize: 11, marginBottom: 6 }}>
+                    {ar ? "التصريح:" : "Permit:"}{" "}
+                    <b style={{ color: pilgrim.permitStatus === "Valid" ? "#10B981" : pilgrim.permitStatus === "Expired" ? "#F59E0B" : "#EF4444" }}>
+                      {pilgrim.permitStatus}
+                    </b>
+                  </div>
                   {pilgrim.emergencyStatus && (
-                    <div style={{ marginTop: 6, padding: "3px 8px", background: "#FEE2E2", color: "#DC2626", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                    <div style={{ marginBottom: 6, padding: "3px 8px", background: "#FEE2E2", color: "#DC2626", borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
                       ⚠ {ar ? "طوارئ نشطة" : "Emergency Active"}
                     </div>
                   )}
+                  <a
+                    href="/pilgrims"
+                    style={{
+                      display: "block", textAlign: "center", padding: "5px 10px",
+                      background: "#0E4D41", color: "#fff", borderRadius: 6,
+                      fontSize: 11, fontWeight: 700, textDecoration: "none", marginTop: 4,
+                    }}
+                  >
+                    {ar ? "عرض الملف الشخصي ←" : "View Profile →"}
+                  </a>
                 </div>
               </Popup>
             </Marker>
@@ -370,7 +388,11 @@ export function RealMap({ pilgrims, sectorData, onZoneClick }: RealMapProps) {
         <div className="border-t border-border/50 mt-2 pt-2">
           <div className={`flex items-center gap-2 text-xs mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
             <span className="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0" />
-            <span className="text-foreground/80">{ar ? "حاج" : "Pilgrim"}</span>
+            <span className="text-foreground/80">{ar ? "حاج طبيعي" : "Normal"}</span>
+          </div>
+          <div className={`flex items-center gap-2 text-xs mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <span className="w-3 h-3 rounded-full bg-amber-400 flex-shrink-0" />
+            <span className="text-foreground/80">{ar ? "تصريح منتهي" : "Expired Permit"}</span>
           </div>
           <div className={`flex items-center gap-2 text-xs ${isRTL ? "flex-row-reverse" : ""}`}>
             <span className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />

@@ -18,7 +18,7 @@ export const pilgrims = pgTable("pilgrims", {
 
 export const emergencies = pgTable("emergencies", {
   id: serial("id").primaryKey(),
-  pilgrimId: serial("pilgrim_id").references(() => pilgrims.id),
+  pilgrimId: integer("pilgrim_id").references(() => pilgrims.id),
   type: text("type").notNull(), // 'Medical', 'Lost', 'Security'
   status: text("status").notNull().default("Active"), // 'Active', 'Resolved'
   locationLat: doublePrecision("location_lat").notNull(),

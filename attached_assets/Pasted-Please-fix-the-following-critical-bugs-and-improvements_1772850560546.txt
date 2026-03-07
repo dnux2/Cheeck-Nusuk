@@ -1,0 +1,99 @@
+Please fix the following critical bugs and improvements in this project:
+
+---
+
+## 🔴 CRITICAL FIXES (Must Fix)
+
+### 1. Wrong AI Model Name — server/routes.ts
+The model name `gpt-5.1` does not exist in OpenAI. The AI Translator will completely fail.
+```
+// ❌ Wrong:
+model: "gpt-5.1"
+
+// ✅ Fix:
+model: "gpt-4o-mini"
+```
+
+### 2. Wrong Schema Type — shared/schema.ts
+`pilgrimId` in the `emergencies` table is defined as `serial` (auto-increment) instead of `integer`. This is a foreign key and must be `integer`.
+```
+// ❌ Wrong:
+pilgrimId: serial("pilgrim_id").references(() => pilgrims.id)
+
+// ✅ Fix:
+pilgrimId: integer("pilgrim_id").references(() => pilgrims.id)
+```
+Also import `integer` from `drizzle-orm/pg-core`.
+
+### 3. Runtime Crash in resolveEmergency — server/storage.ts
+The function does not handle the case where the emergency ID does not exist, causing an unhandled crash.
+```
+// ✅ Add this null check after the DB query:
+if (!resolved) throw new Error(`Emergency with id ${id} not found`);
+```
+
+### 4. Add CORS Middleware — server/index.ts
+Add basic CORS support to prevent cross-origin request errors.
+```
+// Add at the top of server/index.ts:
+import cors from 'cors';
+app.use(cors());
+```
+Install: `npm install cors @types/cors`
+
+### 5. Remove Unused Fonts — client/index.html
+The HTML file loads 20+ Google Fonts which severely slows down the app. Keep only the fonts actually used.
+```
+// ✅ Keep ONLY these two font imports and remove all others:
+// 1. Cairo + Tajawal (Arabic)
+// 2. Plus Jakarta Sans (English)
+```
+
+---
+
+## 🟡 IMPORTANT IMPROVEMENTS
+
+### 6. Replace Mock Map with Real Leaflet Map
+Leaflet and react-leaflet are already installed in package.json but not used. The current CSS grid mock map does not show real locations.
+- Replace the MockMap component with a real `react-leaflet` map
+- Center the map on Makkah coordinates: `[21.4225, 39.8262]`
+- Show each pilgrim as a colored marker using their `locationLat` and `locationLng` from the database
+- Clicking a marker should show the pilgrim's profile popup
+
+### 7. Add Loading State for AI Translator
+The translator page has no loading indicator while waiting for the OpenAI API response.
+- Show a spinner or "Translating..." message while the API call is in progress
+- Disable the translate button while loading to prevent duplicate requests
+
+### 8. Add Confirmation Dialog for Resolve Emergency
+Resolving an emergency with a single click is dangerous. Add a confirmation step.
+- Use the existing shadcn AlertDialog component
+- Message: "Are you sure you want to mark this emergency as resolved?"
+
+### 9. Add Pagination to Pilgrim List API — server/routes.ts
+Fetching all pilgrims at once will not scale.
+```
+// Add query params support:
+GET /api/pilgrims?limit=20&offset=0
+```
+
+### 10. Add Input Validation for Empty Strings
+In the AI translate endpoint, add a check to reject empty text before calling OpenAI.
+```
+if (!text.trim()) {
+  return res.status(400).json({ message: "Text cannot be empty" });
+}
+```
+
+---
+
+## 🟢 BONUS (If Time Allows)
+
+- Add 50+ diverse seed pilgrims with different nationalities (Saudi, Egyptian, Indonesian, Pakistani, Turkish, Malaysian, Nigerian, Bangladeshi) to better demonstrate the system
+- Add a sound notification (using Web Audio API) when a new emergency is created
+- Add `pgEnum` for `permitStatus` values ('Valid', 'Expired', 'None') and `emergency type` values in shared/schema.ts to enforce valid values at the database level
+- Add `helmet` middleware for security headers: `npm install helmet`
+
+---
+
+Please apply all Critical fixes first, then the Important improvements, then the Bonus items if possible. Make sure the app still runs correctly after each change.
