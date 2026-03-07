@@ -233,9 +233,9 @@ function FacilitySheet({
     .sort((a, b) => a.distM - b.distM);
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-[800] flex flex-col" style={{ maxHeight: "62%" }}>
-      {/* backdrop tap-to-close strip */}
-      <div className="flex-1" onClick={onClose} />
+    <div className="flex flex-col" style={{ maxHeight: "72vh" }}>
+      {/* tap backdrop to close */}
+      <div className="h-4" onClick={onClose} />
       <div className="rounded-t-3xl shadow-2xl flex flex-col overflow-hidden" style={{ background: "white", direction: isRTL ? "rtl" : "ltr" }}>
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -606,8 +606,11 @@ export function PilgrimGuideMap() {
     originSearchTimer.current = setTimeout(() => searchOriginByName(v), 500);
   };
 
+  const [flyToCustomOrigin, setFlyToCustomOrigin] = useState(false);
+
   const pickOriginFromSearch = (lat: string, lon: string, name: string) => {
     setCustomOrigin({ lat: parseFloat(lat), lng: parseFloat(lon) });
+    setFlyToCustomOrigin(true);
     setOriginPanelOpen(false);
     setOriginSearchQ("");
     setOriginSearchResults([]);
@@ -1089,6 +1092,9 @@ export function PilgrimGuideMap() {
           }} onMapClick={() => setFacilitySheet(null)} />
 
           {flyToGps && !navRoute && gpsPos && <FlyToPos lat={gpsPos.lat} lng={gpsPos.lng} />}
+          {flyToCustomOrigin && customOrigin && !navRoute && (
+            <FlyToPos key={`${customOrigin.lat}-${customOrigin.lng}`} lat={customOrigin.lat} lng={customOrigin.lng} />
+          )}
           {navRoute && <FitRoute coords={navRoute.coords} />}
 
           {customOrigin && (
@@ -1128,22 +1134,28 @@ export function PilgrimGuideMap() {
           })}
 
         </MapContainer>
-
-        {/* Facility bottom sheet — overlays the map */}
-        {facilitySheet && !navRoute && (
-          <FacilitySheet
-            ar={ar}
-            isRTL={isRTL}
-            type={facilitySheet.type}
-            selectedId={facilitySheet.selectedId}
-            myLat={myLat}
-            myLng={myLng}
-            currentHour={currentHour}
-            onNavigate={(f) => { setFacilitySheet(null); handleNavigate(f); }}
-            onClose={() => setFacilitySheet(null)}
-          />
-        )}
       </div>
+
+      {/* Facility sheet — fixed full-screen overlay */}
+      {facilitySheet && !navRoute && (
+        <div className="fixed inset-0 z-[9999] flex flex-col justify-end">
+          {/* Dark backdrop */}
+          <div className="absolute inset-0 bg-black/40" onClick={() => setFacilitySheet(null)} />
+          <div className="relative">
+            <FacilitySheet
+              ar={ar}
+              isRTL={isRTL}
+              type={facilitySheet.type}
+              selectedId={facilitySheet.selectedId}
+              myLat={myLat}
+              myLng={myLng}
+              currentHour={currentHour}
+              onNavigate={(f) => { setFacilitySheet(null); handleNavigate(f); }}
+              onClose={() => setFacilitySheet(null)}
+            />
+          </div>
+        </div>
+      )}
 
       {crowdModal && (
         <CrowdWarningModal
