@@ -52,9 +52,7 @@ export function PilgrimsPage() {
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "valid" && p.permitStatus === "Valid") ||
-      (statusFilter === "expired" && p.permitStatus === "Expired") ||
-      (statusFilter === "none" && p.permitStatus === "Pending") ||
-      (statusFilter === "review" && p.permitStatus === "UnderReview");
+      (statusFilter === "expired" && p.permitStatus === "Expired");
     const matchesGender =
       genderFilter === "all" || p.gender === genderFilter;
     return matchesSearch && matchesStatus && matchesGender;
@@ -209,8 +207,6 @@ export function PilgrimsPage() {
               <option value="all">{t("allStatus")}</option>
               <option value="valid">{t("validPermit")}</option>
               <option value="expired">{t("expiredPermit")}</option>
-              <option value="none">{t("none")}</option>
-              <option value="review">{ar ? "جاري المراجعة" : "Under Review"}</option>
             </select>
 
             {/* Gender filter */}
