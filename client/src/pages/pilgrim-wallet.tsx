@@ -59,7 +59,7 @@ export function PilgrimWalletPage() {
   };
 
   const permitColor =
-    pilgrim?.permitStatus === "Valid" ? { bg: "from-emerald-600 to-emerald-700", badge: "bg-emerald-400/20 text-white border-white/30" }
+    pilgrim?.permitStatus === "Valid" ? { bg: "from-[#c49a3c] to-[#8a6520]", badge: "bg-white/20 text-white border-white/30" }
     : pilgrim?.permitStatus === "Expired" ? { bg: "from-amber-600 to-amber-700", badge: "bg-amber-400/20 text-white border-white/30" }
     : { bg: "from-violet-600 to-violet-700", badge: "bg-violet-400/20 text-white border-white/30" };
 
