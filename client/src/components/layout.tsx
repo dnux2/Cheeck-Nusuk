@@ -145,7 +145,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors text-foreground border border-border"
+              className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
               data-testid="button-sidebar-toggle"
               aria-label="Toggle sidebar"
             >

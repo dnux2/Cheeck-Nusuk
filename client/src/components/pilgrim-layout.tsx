@@ -160,10 +160,10 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
           {/* Start: hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="lg:hidden p-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border transition-colors"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
             data-testid="btn-open-pilgrim-menu"
           >
-            <Menu className="w-5 h-5 text-foreground" />
+            <Menu className="w-5 h-5" />
           </button>
           <div className="hidden lg:block w-10" />
 
