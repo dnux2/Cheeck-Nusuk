@@ -3,6 +3,7 @@ import { ArrowRight, ShieldCheck, Map, Clock, HeartHandshake, Users, Shield } fr
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
 import logoImg from "@assets/WhatsApp_Image_2026-03-07_at_12.53.20_AM_1772834050515.jpeg";
+import kaabahImg from "@assets/image_1772857790742.png";
 
 export function LandingPage() {
   const { lang, setLang, isRTL } = useLanguage();
@@ -31,75 +32,98 @@ export function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <main className="flex-1 pt-32">
-        <section className="relative px-6 py-20 md:py-28 max-w-7xl mx-auto flex flex-col items-center text-center overflow-hidden">
+      <main className="flex-1 pt-24">
+        <section className="relative px-6 py-14 md:py-20 max-w-7xl mx-auto overflow-hidden">
           {/* Background glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-primary/5 rounded-full blur-3xl -z-10" />
-          <div className="absolute top-1/4 right-0 w-[350px] h-[350px] bg-accent/5 rounded-full blur-3xl -z-10" />
+          <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl -z-10" />
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-primary font-semibold text-sm mb-8 border border-primary/10"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-            </span>
-            {ar ? "نظام الحج الذكي 1446 — متاح الآن" : "Hajj 1446 Smart System — Online"}
-          </motion.div>
+          <div className={`flex flex-col lg:flex-row items-center gap-12 lg:gap-16 ${isRTL ? "lg:flex-row-reverse" : ""}`}>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-display font-extrabold tracking-tight text-foreground max-w-4xl leading-[1.1]"
-          >
-            {ar
-              ? <>حج آمن ومنظّم<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">بالذكاء الاصطناعي</span></>
-              : <>Ensuring a <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Safe & Seamless</span> Pilgrimage</>
-            }
-          </motion.h1>
+            {/* Text column */}
+            <div className={`flex-1 flex flex-col ${isRTL ? "items-end text-right" : "items-start text-left"} max-w-xl`}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-primary font-semibold text-sm mb-6 border border-primary/10"
+              >
+                <span className="relative flex h-2 w-2 flex-shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                </span>
+                {ar ? "نظام الحج الذكي 1446 — متاح الآن" : "Hajj 1446 Smart System — Online"}
+              </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-8 text-xl md:text-2xl text-muted-foreground max-w-2xl font-medium"
-          >
-            {ar
-              ? "إدارة الحشود، والتتبع الفوري، والاستجابة للطوارئ لضيوف الرحمن"
-              : "AI-powered crowd management, real-time tracking, and instant emergency response for the Guests of Allah."}
-          </motion.p>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold tracking-tight text-foreground leading-[1.15]"
+              >
+                {ar
+                  ? <><span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-emerald-500">حج آمن ومنظّم</span><br />بالذكاء الاصطناعي</>
+                  : <>Ensuring a<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Safe & Seamless</span><br />Pilgrimage</>
+                }
+              </motion.h1>
 
-          {/* Two entry buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-            className={`mt-14 flex flex-col sm:flex-row gap-5 ${isRTL ? "sm:flex-row-reverse" : ""}`}
-          >
-            {/* Admin / Supervisor */}
-            <Link
-              href="/dashboard"
-              data-testid="link-admin-entry"
-              className="group flex flex-col items-center gap-3 px-10 py-6 bg-primary text-primary-foreground font-bold rounded-3xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 min-w-[220px]"
+              <motion.p
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-6 text-lg md:text-xl text-muted-foreground font-medium leading-relaxed"
+              >
+                {ar
+                  ? "إدارة الحشود، والتتبع الفوري، والاستجابة للطوارئ لضيوف الرحمن"
+                  : "AI-powered crowd management, real-time tracking, and instant emergency response for the Guests of Allah."}
+              </motion.p>
+
+              {/* Two entry buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+              >
+                <Link
+                  href="/dashboard"
+                  data-testid="link-admin-entry"
+                  className="group flex items-center justify-center gap-3 px-8 py-4 bg-primary text-primary-foreground font-bold rounded-2xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  <Shield className="w-5 h-5 opacity-90 group-hover:scale-110 transition-transform flex-shrink-0" />
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <div className="text-base font-bold">{ar ? "دخول المشرف" : "Supervisor Access"}</div>
+                    <div className="text-xs opacity-75">{ar ? "لوحة تحكم المشرفين" : "Admin control panel"}</div>
+                  </div>
+                  <ArrowRight className={`w-4 h-4 opacity-60 flex-shrink-0 ${isRTL ? "rotate-180" : ""}`} />
+                </Link>
+
+                <Link
+                  href="/pilgrim"
+                  data-testid="link-pilgrim-entry"
+                  className="group flex items-center justify-center gap-3 px-8 py-4 bg-card text-foreground font-bold rounded-2xl border-2 border-border hover:border-primary/50 hover:bg-secondary/50 transition-all duration-300"
+                >
+                  <Users className="w-5 h-5 text-primary group-hover:scale-110 transition-transform flex-shrink-0" />
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <div className="text-base font-bold">{ar ? "بوابة الحاج" : "Pilgrim Portal"}</div>
+                    <div className="text-xs text-muted-foreground">{ar ? "للحجاج والمعتمرين" : "For Hajj & Umrah pilgrims"}</div>
+                  </div>
+                  <ArrowRight className={`w-4 h-4 text-primary opacity-60 flex-shrink-0 ${isRTL ? "rotate-180" : ""}`} />
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Kaabah image column */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, delay: 0.2 }}
+              className="flex-1 w-full max-w-lg lg:max-w-none"
             >
-              <Shield className="w-9 h-9 opacity-90 group-hover:scale-110 transition-transform" />
-              <div className="text-center">
-                <div className="text-xl font-bold">{ar ? "دخول المشرف" : "Supervisor Access"}</div>
-                <div className="text-sm opacity-80 mt-1">{ar ? "لوحة تحكم المشرفين" : "Admin control panel"}</div>
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-border/40">
+                <img
+                  src={kaabahImg}
+                  alt={ar ? "الحجاج حول الكعبة المشرفة" : "Pilgrims around the Holy Kaabah"}
+                  className="w-full h-64 sm:h-80 lg:h-[420px] object-cover"
+                />
+                {/* Overlay caption */}
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-6 py-5">
+                  <p className="text-white font-bold text-lg">{ar ? "🕌 حج آمن بإذن الله" : "🕌 A Safe Pilgrimage, God willing"}</p>
+                  <p className="text-white/70 text-sm mt-0.5">{ar ? "مكة المكرمة — الكعبة المشرفة" : "Makkah Al-Mukarramah — Holy Kaabah"}</p>
+                </div>
               </div>
-              <ArrowRight className={`w-5 h-5 opacity-70 ${isRTL ? "rotate-180" : ""}`} />
-            </Link>
+            </motion.div>
 
-            {/* Pilgrim Portal */}
-            <Link
-              href="/pilgrim"
-              data-testid="link-pilgrim-entry"
-              className="group flex flex-col items-center gap-3 px-10 py-6 bg-card text-foreground font-bold rounded-3xl border-2 border-border hover:border-primary/50 hover:bg-secondary/50 transition-all duration-300 min-w-[220px]"
-            >
-              <Users className="w-9 h-9 text-primary group-hover:scale-110 transition-transform" />
-              <div className="text-center">
-                <div className="text-xl font-bold">{ar ? "بوابة الحاج" : "Pilgrim Portal"}</div>
-                <div className="text-sm text-muted-foreground mt-1">{ar ? "للحجاج والمعتمرين" : "For Hajj & Umrah pilgrims"}</div>
-              </div>
-              <ArrowRight className={`w-5 h-5 text-primary opacity-70 ${isRTL ? "rotate-180" : ""}`} />
-            </Link>
-          </motion.div>
+          </div>
         </section>
 
         {/* Features Grid */}
