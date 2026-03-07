@@ -412,11 +412,11 @@ export function RealMap({ pilgrims, sectorData, onZoneClick, highlightedPilgrimI
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`absolute top-4 ${isRTL ? "left-4" : "right-4"} flex items-center gap-2 bg-primary text-primary-foreground text-xs font-bold px-3 py-2 rounded-xl shadow-lg`}
+            className={`absolute top-4 ${isRTL ? "left-16" : "right-16"} flex items-center gap-2 bg-card/95 backdrop-blur-xl border border-border text-foreground text-xs font-bold px-3 py-2 rounded-xl shadow-lg`}
             style={{ zIndex: 850 }}
             dir={isRTL ? "rtl" : "ltr"}
           >
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
             {ar ? `تتبع: ${highlightedPilgrim.name}` : `Tracking: ${highlightedPilgrim.name}`}
           </motion.div>
         )}

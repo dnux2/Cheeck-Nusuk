@@ -86,8 +86,8 @@ export function CrowdManagementPage() {
 
         {/* Highlighted pilgrim strip */}
         {highlightedPilgrim && (
-          <div className={`mt-3 flex items-center gap-3 p-3 bg-primary/10 border border-primary/30 rounded-xl text-sm font-semibold text-primary ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
+          <div className={`mt-3 flex items-center gap-3 p-3 bg-card border border-border rounded-xl text-sm font-semibold text-foreground ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
               {highlightedPilgrim.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
             </div>
             <div className={`flex-1 ${isRTL ? "text-right" : ""}`}>
