@@ -1,20 +1,20 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mic, MicOff, ArrowRightLeft, Volume2, Languages, Copy } from "lucide-react";
+import { Mic, MicOff, ArrowRightLeft, Volume2, VolumeX, Languages, Copy, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { useTranslate } from "@/hooks/use-ai";
 import { useToast } from "@/hooks/use-toast";
 import { PilgrimLayout } from "@/components/pilgrim-layout";
 
 const LANGUAGES = [
-  { code: "Arabic", labelAr: "العربية",      labelEn: "Arabic" },
-  { code: "English", labelAr: "الإنجليزية", labelEn: "English" },
-  { code: "Urdu",    labelAr: "الأردية",    labelEn: "Urdu" },
-  { code: "French",  labelAr: "الفرنسية",   labelEn: "French" },
-  { code: "Malay",   labelAr: "الملايو",    labelEn: "Malay" },
-  { code: "Indonesian", labelAr: "الإندونيسية", labelEn: "Indonesian" },
-  { code: "Turkish", labelAr: "التركية",    labelEn: "Turkish" },
-  { code: "Bengali", labelAr: "البنغالية",  labelEn: "Bengali" },
+  { code: "Arabic",     labelAr: "العربية",         labelEn: "Arabic",      flag: "🇸🇦" },
+  { code: "English",    labelAr: "الإنجليزية",      labelEn: "English",     flag: "🇬🇧" },
+  { code: "Urdu",       labelAr: "الأردية",         labelEn: "Urdu",        flag: "🇵🇰" },
+  { code: "French",     labelAr: "الفرنسية",        labelEn: "French",      flag: "🇫🇷" },
+  { code: "Malay",      labelAr: "الملايو",         labelEn: "Malay",       flag: "🇲🇾" },
+  { code: "Indonesian", labelAr: "الإندونيسية",     labelEn: "Indonesian",  flag: "🇮🇩" },
+  { code: "Turkish",    labelAr: "التركية",         labelEn: "Turkish",     flag: "🇹🇷" },
+  { code: "Bengali",    labelAr: "البنغالية",       labelEn: "Bengali",     flag: "🇧🇩" },
 ];
 
 declare global {
@@ -24,51 +24,69 @@ declare global {
   }
 }
 
+const LANG_TO_LOCALE: Record<string, string> = {
+  Arabic: "ar-SA", English: "en-US", Urdu: "ur-PK", French: "fr-FR",
+  Malay: "ms-MY", Indonesian: "id-ID", Turkish: "tr-TR", Bengali: "bn-BD",
+};
+
 export function PilgrimTranslatorPage() {
   const { lang, isRTL } = useLanguage();
   const { toast } = useToast();
   const translate = useTranslate();
   const ar = lang === "ar";
 
-  const [text, setText] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("Arabic");
+  const [sourceText, setSourceText] = useState("");
+  const [sourceLang, setSourceLang] = useState("Arabic");
+  const [targetLang, setTargetLang] = useState("English");
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const handleTranslate = async () => {
-    if (!text.trim()) return;
-    await translate.mutateAsync({ text, targetLanguage });
+    if (!sourceText.trim()) return;
+    await translate.mutateAsync({ text: sourceText, targetLanguage: targetLang });
+  };
+
+  const handleSwap = () => {
+    const prevSrc = sourceLang;
+    const prevTgt = targetLang;
+    const prevResult = translate.data?.translatedText || "";
+    setSourceLang(prevTgt);
+    setTargetLang(prevSrc);
+    if (prevResult) setSourceText(prevResult);
   };
 
   const startListening = () => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      toast({ title: ar ? "المتصفح لا يدعم التعرف على الصوت" : "Browser doesn't support voice recognition", variant: "destructive" });
+    const API = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!API) {
+      toast({ title: ar ? "المتصفح لا يدعم التعرف على الصوت" : "Voice not supported", variant: "destructive" });
       return;
     }
-    const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = lang === "ar" ? "ar-SA" : "en-US";
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
-      setText(Array.from(e.results).map(r => r[0].transcript).join(""));
+    const r = new API();
+    r.continuous = false;
+    r.interimResults = true;
+    r.lang = LANG_TO_LOCALE[sourceLang] || "ar-SA";
+    r.onstart = () => setIsListening(true);
+    r.onresult = (e: SpeechRecognitionEvent) => {
+      setSourceText(Array.from(e.results).map(r => r[0].transcript).join(""));
     };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
+    r.onerror = () => setIsListening(false);
+    r.onend = () => setIsListening(false);
+    recognitionRef.current = r;
+    r.start();
   };
 
-  const stopListening = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  };
+  const stopListening = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
-  const speak = (content: string) => {
-    const utterance = new SpeechSynthesisUtterance(content);
-    utterance.lang = targetLanguage === "Arabic" ? "ar-SA" : "en-US";
-    window.speechSynthesis.speak(utterance);
+  const handleSpeak = () => {
+    if (!translate.data?.translatedText) return;
+    if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
+    const utter = new SpeechSynthesisUtterance(translate.data.translatedText);
+    utter.lang = LANG_TO_LOCALE[targetLang] || "en-US";
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utter);
   };
 
   const copyText = (content: string) => {
@@ -76,67 +94,103 @@ export function PilgrimTranslatorPage() {
     toast({ title: ar ? "تم النسخ" : "Copied!" });
   };
 
+  const getLangLabel = (code: string) => {
+    const l = LANGUAGES.find(x => x.code === code);
+    if (!l) return code;
+    return `${l.flag} ${ar ? l.labelAr : l.labelEn}`;
+  };
+
   return (
     <PilgrimLayout>
-      <div className="max-w-xl mx-auto px-4 py-6 space-y-5" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="max-w-xl mx-auto px-4 py-6 space-y-4" dir={isRTL ? "rtl" : "ltr"}>
 
         {/* Header */}
         <div className={isRTL ? "text-right" : ""}>
-          <div className="flex items-center gap-2 mb-1">
+          <div className={`flex items-center gap-2 mb-1 ${isRTL ? "flex-row-reverse" : ""}`}>
             <Languages className="w-5 h-5 text-accent" />
             <h1 className="font-bold text-primary text-xl">{ar ? "المترجم الذكي" : "AI Translator"}</h1>
           </div>
           <p className="text-xs text-muted-foreground">{ar ? "ترجمة فورية بالذكاء الاصطناعي بـ٨ لغات" : "Instant AI translation in 8 languages"}</p>
         </div>
 
-        {/* Source */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl bg-card border border-border shadow-sm overflow-hidden"
-        >
-          <div className={`px-4 pt-4 pb-2 text-xs font-bold text-muted-foreground ${isRTL ? "text-right" : ""}`}>
-            {ar ? "النص الأصلي" : "Original Text"}
+        {/* Source language bar */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+          {/* Language selector + mic */}
+          <div className={`flex items-center justify-between px-4 pt-4 pb-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <select
+              value={sourceLang}
+              onChange={e => setSourceLang(e.target.value)}
+              className="bg-secondary border border-border rounded-2xl px-3 py-1.5 text-xs font-bold text-primary outline-none"
+              data-testid="select-source-language"
+            >
+              {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {ar ? l.labelAr : l.labelEn}</option>)}
+            </select>
+            <button
+              onClick={isListening ? stopListening : startListening}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all ${isListening ? "bg-red-500 text-white animate-pulse" : "bg-secondary text-primary hover:bg-secondary/80"}`}
+              data-testid="btn-voice-input"
+            >
+              {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+              {isListening ? (ar ? "إيقاف" : "Stop") : (ar ? "صوت" : "Voice")}
+            </button>
           </div>
+
+          {/* Source textarea */}
           <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder={ar ? "اكتب النص هنا أو استخدم الميكروفون..." : "Type text here or use the microphone..."}
-            className={`w-full px-4 pb-3 text-sm bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground/50 min-h-[100px] ${isRTL ? "text-right" : ""}`}
+            value={sourceText}
+            onChange={e => setSourceText(e.target.value)}
+            placeholder={ar ? `اكتب النص بـ ${getLangLabel(sourceLang)}...` : `Type text in ${getLangLabel(sourceLang)}...`}
+            className={`w-full px-4 pb-4 text-sm bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground/50 min-h-[100px] ${isRTL ? "text-right" : ""}`}
+            dir="auto"
             rows={4}
             data-testid="input-translate-text"
           />
-          <div className={`px-4 pb-3 flex items-center gap-2 border-t border-border pt-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <button
-              onClick={isListening ? stopListening : startListening}
-              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all ${isListening ? "bg-red-500 text-white animate-pulse" : "bg-secondary text-primary hover:bg-secondary/80"}`}
-              data-testid="btn-voice-input"
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              {isListening ? (ar ? "إيقاف" : "Stop") : (ar ? "صوت" : "Voice")}
-            </button>
-            {text && (
-              <button onClick={() => copyText(text)} className="p-2 rounded-xl hover:bg-secondary text-muted-foreground">
-                <Copy className="w-4 h-4" />
+
+          {sourceText && (
+            <div className={`px-4 pb-3 border-t border-border pt-2 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <button onClick={() => copyText(sourceText)} className="p-1.5 rounded-xl hover:bg-secondary text-muted-foreground">
+                <Copy className="w-3.5 h-3.5" />
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </motion.div>
 
-        {/* Target language */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-          className="rounded-3xl bg-card border border-border shadow-sm p-4"
-        >
-          <div className={`text-xs font-bold text-muted-foreground mb-3 ${isRTL ? "text-right" : ""}`}>{ar ? "اللغة المستهدفة" : "Target Language"}</div>
+        {/* Swap button */}
+        <div className="flex items-center justify-center">
+          <button
+            onClick={handleSwap}
+            data-testid="btn-swap-languages"
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-full text-xs font-bold text-primary hover:bg-secondary transition-all shadow-sm"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+            {ar ? `عكس: ${getLangLabel(sourceLang)} ↔ ${getLangLabel(targetLang)}` : `Swap: ${getLangLabel(sourceLang)} ↔ ${getLangLabel(targetLang)}`}
+          </button>
+        </div>
+
+        {/* Target language + translate button */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          className="bg-card border border-border rounded-3xl p-4 space-y-3">
+          <div className={`flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className={`text-xs font-bold text-muted-foreground ${isRTL ? "text-right" : ""}`}>{ar ? "ترجم إلى" : "Translate to"}</div>
+            <select
+              value={targetLang}
+              onChange={e => setTargetLang(e.target.value)}
+              className="bg-secondary border border-border rounded-2xl px-3 py-1.5 text-xs font-bold text-primary outline-none"
+              data-testid="select-target-language"
+            >
+              {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {ar ? l.labelAr : l.labelEn}</option>)}
+            </select>
+          </div>
           <div className="flex flex-wrap gap-2">
             {LANGUAGES.map(l => (
               <button
                 key={l.code}
-                onClick={() => setTargetLanguage(l.code)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${targetLanguage === l.code ? "bg-primary text-white border-transparent" : "bg-background text-muted-foreground border-border hover:border-primary"}`}
+                onClick={() => setTargetLang(l.code)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${targetLang === l.code ? "bg-primary text-primary-foreground border-transparent" : "bg-background text-muted-foreground border-border hover:border-primary"}`}
                 data-testid={`lang-${l.code.toLowerCase()}`}
               >
-                {ar ? l.labelAr : l.labelEn}
+                {l.flag} {ar ? l.labelAr : l.labelEn}
               </button>
             ))}
           </div>
@@ -145,32 +199,34 @@ export function PilgrimTranslatorPage() {
         {/* Translate button */}
         <button
           onClick={handleTranslate}
-          disabled={!text.trim() || translate.isPending}
-          className="w-full py-4 rounded-3xl bg-primary hover:bg-primary/90 disabled:opacity-40 text-white font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
+          disabled={!sourceText.trim() || translate.isPending}
+          className="w-full py-4 rounded-3xl bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
           data-testid="btn-translate"
         >
-          <ArrowRightLeft className="w-5 h-5" />
+          {translate.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRightLeft className="w-5 h-5" />}
           {translate.isPending ? (ar ? "جاري الترجمة..." : "Translating...") : (ar ? "ترجم الآن" : "Translate Now")}
         </button>
 
         {/* Result */}
         {translate.data && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-3xl border-2 border-[#0E4D41]/20 bg-gradient-to-br from-[#F0FDF9] to-white shadow-sm overflow-hidden"
-          >
-            <div className={`px-5 pt-4 pb-2 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-              <span className="text-xs font-bold text-primary">{ar ? "الترجمة" : "Translation"} — {targetLanguage}</span>
-              <div className="flex gap-2">
-                <button onClick={() => speak(translate.data.translatedText)} className="p-2 rounded-xl hover:bg-emerald-50 text-primary">
-                  <Volume2 className="w-4 h-4" />
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border-2 border-primary/20 bg-secondary/30 overflow-hidden shadow-sm">
+            <div className={`px-5 pt-4 pb-2 flex items-center justify-between border-b border-border ${isRTL ? "flex-row-reverse" : ""}`}>
+              <span className="text-xs font-bold text-primary">{getLangLabel(targetLang)}</span>
+              <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <button
+                  onClick={handleSpeak}
+                  data-testid="btn-speak-translation"
+                  className={`p-2 rounded-xl transition-colors ${isSpeaking ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-primary"}`}
+                >
+                  {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
-                <button onClick={() => copyText(translate.data.translatedText)} className="p-2 rounded-xl hover:bg-emerald-50 text-primary">
+                <button onClick={() => copyText(translate.data.translatedText)} className="p-2 rounded-xl hover:bg-secondary text-primary">
                   <Copy className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <p className={`px-5 pb-5 text-base text-primary font-medium leading-relaxed ${isRTL && targetLanguage === "Arabic" ? "text-right" : ""}`}>
+            <p className={`px-5 py-4 text-base text-foreground font-medium leading-relaxed ${isRTL ? "text-right" : ""}`} dir="auto">
               {translate.data.translatedText}
             </p>
           </motion.div>

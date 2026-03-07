@@ -182,6 +182,38 @@ export async function registerRoutes(
     }
   });
 
+  // AI Text-to-Speech
+  app.post("/api/ai/tts", async (req, res) => {
+    try {
+      const { text, language } = z.object({ text: z.string().min(1), language: z.string().default("en-US") }).parse(req.body);
+      const voiceMap: Record<string, "alloy" | "nova" | "shimmer" | "echo" | "fable" | "onyx"> = {
+        Arabic: "nova",
+        English: "alloy",
+        Urdu: "nova",
+        French: "shimmer",
+        Malay: "alloy",
+        Indonesian: "alloy",
+        Turkish: "echo",
+        Bengali: "nova",
+        Pashto: "nova",
+      };
+      const voice = voiceMap[language] ?? "alloy";
+      const mp3Response = await openai.audio.speech.create({
+        model: "tts-1",
+        voice,
+        input: text,
+        response_format: "mp3",
+      });
+      const buffer = Buffer.from(await mp3Response.arrayBuffer());
+      res.set("Content-Type", "audio/mpeg");
+      res.set("Content-Length", buffer.length.toString());
+      res.send(buffer);
+    } catch (err: any) {
+      console.error("TTS error:", err?.message || err);
+      res.status(500).json({ message: "TTS generation failed", detail: err?.message });
+    }
+  });
+
   // Chat Messages
   app.get("/api/chat/messages", async (req, res) => {
     const pilgrimId = req.query.pilgrimId ? Number(req.query.pilgrimId) : undefined;

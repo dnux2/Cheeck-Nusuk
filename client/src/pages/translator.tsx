@@ -1,10 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslate } from "@/hooks/use-ai";
-import { Languages, ArrowRightLeft, Mic, MicOff, Volume2, Copy, Check } from "lucide-react";
+import { Languages, ArrowRightLeft, Mic, MicOff, Volume2, VolumeX, Copy, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
+import { useToast } from "@/hooks/use-toast";
 
-const LANGUAGES = ["Arabic", "English", "Urdu", "French", "Malay", "Indonesian", "Turkish", "Bengali", "Pashto"];
+const LANGUAGES = [
+  { code: "Arabic",     label: "العربية",      flag: "🇸🇦" },
+  { code: "English",    label: "English",       flag: "🇬🇧" },
+  { code: "Urdu",       label: "اردو",          flag: "🇵🇰" },
+  { code: "French",     label: "Français",      flag: "🇫🇷" },
+  { code: "Malay",      label: "Melayu",        flag: "🇲🇾" },
+  { code: "Indonesian", label: "Bahasa",        flag: "🇮🇩" },
+  { code: "Turkish",    label: "Türkçe",        flag: "🇹🇷" },
+  { code: "Bengali",    label: "বাংলা",         flag: "🇧🇩" },
+  { code: "Pashto",     label: "پښتو",          flag: "🇦🇫" },
+];
 
 declare global {
   interface Window {
@@ -13,70 +24,76 @@ declare global {
   }
 }
 
+const LANG_TO_LOCALE: Record<string, string> = {
+  Arabic: "ar-SA", English: "en-US", Urdu: "ur-PK", French: "fr-FR",
+  Malay: "ms-MY", Indonesian: "id-ID", Turkish: "tr-TR", Bengali: "bn-BD", Pashto: "ps-AF",
+};
+
 export function TranslatorPage() {
-  const [text, setText] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("Arabic");
+  const [sourceText, setSourceText] = useState("");
+  const [sourceLang, setSourceLang] = useState("Arabic");
+  const [targetLang, setTargetLang] = useState("English");
   const [isListening, setIsListening] = useState(false);
   const [copied, setCopied] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const translate = useTranslate();
   const { isRTL, lang } = useLanguage();
+  const { toast } = useToast();
+  const ar = lang === "ar";
 
   const labels = {
-    title: lang === "ar" ? "المترجم الذكي" : "AI Field Translator",
-    subtitle: lang === "ar" ? "ترجمة فورية للمشرفين في الميدان" : "Instant communication bridging for supervisors",
-    autoDetect: lang === "ar" ? "كشف تلقائي" : "Auto-Detect",
-    placeholder: lang === "ar" ? "اكتب أو تحدث لترجمة النص..." : "Type or speak to translate...",
-    targetLang: lang === "ar" ? "اللغة المستهدفة" : "Target Language",
-    translateBtn: lang === "ar" ? "ترجمة" : "Translate",
-    translating: lang === "ar" ? "جارٍ الترجمة..." : "Translating...",
-    result: lang === "ar" ? "ستظهر الترجمة هنا" : "Translation will appear here",
-    listening: lang === "ar" ? "جارٍ الاستماع..." : "Listening...",
-    voiceStart: lang === "ar" ? "انقر للتحدث" : "Click to speak",
-    voiceNotSupported: lang === "ar" ? "المتصفح لا يدعم التعرف على الصوت" : "Voice recognition not supported in this browser",
-    copy: lang === "ar" ? "نسخ" : "Copy",
-    copied: lang === "ar" ? "تم النسخ" : "Copied!",
-    speak: lang === "ar" ? "استمع" : "Listen",
+    title: ar ? "المترجم الذكي" : "AI Field Translator",
+    subtitle: ar ? "ترجمة فورية للمشرفين في الميدان" : "Instant communication for supervisors in the field",
+    placeholder: ar ? "اكتب أو تحدث لترجمة النص..." : "Type or speak to translate...",
+    translateBtn: ar ? "ترجمة" : "Translate",
+    translating: ar ? "جارٍ الترجمة..." : "Translating...",
+    result: ar ? "ستظهر الترجمة هنا" : "Translation will appear here",
+    listening: ar ? "جارٍ الاستماع..." : "Listening...",
+    voiceStart: ar ? "انقر للتحدث" : "Click to speak",
+    speaking: ar ? "جارٍ النطق..." : "Speaking...",
+    speak: ar ? "استمع" : "Listen",
+    swapLangs: ar ? "عكس اللغتين" : "Swap languages",
   };
 
   const startListening = () => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      setVoiceError(labels.voiceNotSupported);
+    const API = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!API) {
+      setVoiceError(ar ? "المتصفح لا يدعم التعرف على الصوت" : "Voice recognition not supported");
       return;
     }
     setVoiceError(null);
-    const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = lang === "ar" ? "ar-SA" : "en-US";
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
-      setText(transcript);
+    const r = new API();
+    r.continuous = false;
+    r.interimResults = true;
+    r.lang = LANG_TO_LOCALE[sourceLang] || "ar-SA";
+    r.onstart = () => setIsListening(true);
+    r.onresult = (e: SpeechRecognitionEvent) => {
+      setSourceText(Array.from(e.results).map(r => r[0].transcript).join(""));
     };
-    recognition.onerror = () => {
-      setIsListening(false);
-      setVoiceError(lang === "ar" ? "تعذّر الوصول إلى الميكروفون" : "Could not access microphone");
-    };
-    recognition.onend = () => setIsListening(false);
-    recognitionRef.current = recognition;
-    recognition.start();
+    r.onerror = () => { setIsListening(false); setVoiceError(ar ? "تعذّر الوصول إلى الميكروفون" : "Microphone error"); };
+    r.onend = () => setIsListening(false);
+    recognitionRef.current = r;
+    r.start();
   };
 
-  const stopListening = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  };
+  const stopListening = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
-  useEffect(() => {
-    return () => recognitionRef.current?.abort();
-  }, []);
+  useEffect(() => { return () => recognitionRef.current?.abort(); }, []);
 
   const handleTranslate = () => {
-    if (!text.trim()) return;
-    translate.mutate({ text, targetLanguage });
+    if (!sourceText.trim()) return;
+    translate.mutate({ text: sourceText, targetLanguage: targetLang });
+  };
+
+  const handleSwap = () => {
+    const prevSource = sourceLang;
+    const prevTarget = targetLang;
+    const prevResult = translate.data?.translatedText || "";
+    setSourceLang(prevTarget);
+    setTargetLang(prevSource);
+    if (prevResult) setSourceText(prevResult);
   };
 
   const handleCopy = () => {
@@ -89,18 +106,23 @@ export function TranslatorPage() {
 
   const handleSpeak = () => {
     if (!translate.data?.translatedText) return;
-    const utt = new SpeechSynthesisUtterance(translate.data.translatedText);
-    const langMap: Record<string, string> = {
-      Arabic: "ar-SA", English: "en-US", Urdu: "ur-PK", French: "fr-FR",
-      Malay: "ms-MY", Indonesian: "id-ID", Turkish: "tr-TR", Bengali: "bn-BD", Pashto: "ps-AF",
-    };
-    utt.lang = langMap[targetLanguage] || "en-US";
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utt);
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(translate.data.translatedText);
+    utter.lang = LANG_TO_LOCALE[targetLang] || "en-US";
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utter);
   };
 
   return (
     <div className="p-6 md:p-8 max-w-[1200px] mx-auto h-[calc(100vh-5rem)] flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
+
+      {/* Header */}
       <div className={`mb-8 ${isRTL ? "text-right" : ""}`}>
         <h1 className={`text-3xl font-display font-bold text-foreground flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Languages className="w-8 h-8 text-primary flex-shrink-0" />
@@ -109,16 +131,26 @@ export function TranslatorPage() {
         <p className="text-muted-foreground mt-1 text-lg">{labels.subtitle}</p>
       </div>
 
-      <div className="grid md:grid-cols-[1fr,auto,1fr] gap-6 items-start flex-1 min-h-0">
-        {/* Input panel */}
-        <div className="flex flex-col h-full bg-card rounded-2xl border border-border shadow-sm p-5 min-h-[300px]">
-          <div className={`flex items-center justify-between mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <span className="font-bold text-muted-foreground text-sm">{labels.autoDetect}</span>
-            {/* Voice button */}
+      {/* Main translator grid */}
+      <div className={`grid md:grid-cols-[1fr,auto,1fr] gap-4 items-start flex-1 min-h-0`}>
+
+        {/* Source panel */}
+        <div className="flex flex-col h-full bg-card rounded-2xl border border-border shadow-sm overflow-hidden min-h-[300px]">
+          {/* Source language selector */}
+          <div className={`flex items-center justify-between px-4 py-3 border-b border-border ${isRTL ? "flex-row-reverse" : ""}`}>
+            <select
+              value={sourceLang}
+              onChange={e => setSourceLang(e.target.value)}
+              className="bg-background border border-border rounded-lg px-3 py-1.5 font-bold text-primary outline-none text-sm focus:ring-2 focus:ring-primary/20"
+              data-testid="select-source-language"
+            >
+              {LANGUAGES.map(l => (
+                <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
+              ))}
+            </select>
             <button
               onClick={isListening ? stopListening : startListening}
               data-testid="button-voice-input"
-              title={labels.voiceStart}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border ${
                 isListening
                   ? "bg-destructive/10 text-destructive border-destructive/30 animate-pulse"
@@ -131,34 +163,30 @@ export function TranslatorPage() {
           </div>
 
           <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={sourceText}
+            onChange={(e) => setSourceText(e.target.value)}
             placeholder={labels.placeholder}
             data-testid="input-translate-text"
             dir="auto"
-            className={`flex-1 w-full bg-transparent resize-none outline-none text-xl placeholder:text-muted p-2 ${isRTL ? "text-right" : ""}`}
+            className={`flex-1 w-full bg-transparent resize-none outline-none text-xl placeholder:text-muted-foreground/40 p-4 ${isRTL ? "text-right" : ""}`}
           />
 
           <AnimatePresence>
             {voiceError && (
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="text-sm text-destructive mt-2">
+                className="text-sm text-destructive px-4 pb-3">
                 {voiceError}
               </motion.p>
             )}
           </AnimatePresence>
 
-          {/* Listening waveform animation */}
+          {/* Listening waveform */}
           <AnimatePresence>
             {isListening && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="flex items-center justify-center gap-1 mt-3"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex items-center justify-center gap-1 pb-4">
                 {[0.2, 0.5, 0.8, 0.5, 0.2].map((d, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1 bg-destructive rounded-full"
+                  <motion.div key={i} className="w-1 bg-destructive rounded-full"
                     animate={{ height: ["8px", "24px", "8px"] }}
                     transition={{ duration: 0.8, delay: d, repeat: Infinity }}
                   />
@@ -168,31 +196,49 @@ export function TranslatorPage() {
           </AnimatePresence>
         </div>
 
-        {/* Translate button */}
-        <div className="flex flex-col items-center gap-3 pt-14">
+        {/* Middle: Translate + Swap */}
+        <div className="flex flex-col items-center gap-3 pt-10">
+          {/* Translate button */}
           <button
             onClick={handleTranslate}
-            disabled={!text.trim() || translate.isPending}
+            disabled={!sourceText.trim() || translate.isPending}
             data-testid="button-translate"
+            title={labels.translateBtn}
             className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/25 hover:scale-110 disabled:opacity-50 disabled:hover:scale-100 transition-all"
           >
-            <ArrowRightLeft className={`w-6 h-6 ${translate.isPending ? "animate-spin" : ""}`} />
+            {translate.isPending
+              ? <Loader2 className="w-6 h-6 animate-spin" />
+              : <ArrowRightLeft className="w-6 h-6" />}
           </button>
-          <span className="text-xs text-muted-foreground font-semibold">
+          <span className="text-xs text-muted-foreground font-semibold text-center">
             {translate.isPending ? labels.translating : labels.translateBtn}
           </span>
+
+          {/* Swap languages button */}
+          <button
+            onClick={handleSwap}
+            data-testid="button-swap-languages"
+            title={labels.swapLangs}
+            className="w-10 h-10 rounded-full bg-secondary border border-border text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center mt-1"
+          >
+            <ArrowRightLeft className="w-4 h-4 rotate-90" />
+          </button>
+          <span className="text-[10px] text-muted-foreground text-center">{labels.swapLangs}</span>
         </div>
 
         {/* Output panel */}
-        <div className="flex flex-col h-full bg-secondary/30 rounded-2xl border border-border shadow-sm p-5 relative overflow-hidden min-h-[300px]">
-          <div className={`flex items-center justify-between mb-4 z-10 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className="flex flex-col h-full bg-secondary/30 rounded-2xl border border-border shadow-sm overflow-hidden relative min-h-[300px]">
+          {/* Target language selector + actions */}
+          <div className={`flex items-center justify-between px-4 py-3 border-b border-border ${isRTL ? "flex-row-reverse" : ""}`}>
             <select
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
+              value={targetLang}
+              onChange={(e) => setTargetLang(e.target.value)}
               data-testid="select-target-language"
-              className="bg-background border border-border rounded-lg px-3 py-1.5 font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+              className="bg-background border border-border rounded-lg px-3 py-1.5 font-bold text-primary outline-none text-sm focus:ring-2 focus:ring-primary/20"
             >
-              {LANGUAGES.map(l => <option key={l}>{l}</option>)}
+              {LANGUAGES.map(l => (
+                <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
+              ))}
             </select>
 
             {translate.data && (
@@ -201,13 +247,13 @@ export function TranslatorPage() {
                   onClick={handleSpeak}
                   title={labels.speak}
                   data-testid="button-speak-translation"
-                  className="p-2 rounded-lg bg-secondary hover:bg-primary hover:text-white transition-colors"
+                  className={`p-2 rounded-lg transition-colors ${isSpeaking ? "bg-primary text-white" : "bg-secondary hover:bg-primary hover:text-white"}`}
                 >
-                  <Volume2 className="w-4 h-4" />
+                  {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={handleCopy}
-                  title={labels.copy}
+                  title={ar ? "نسخ" : "Copy"}
                   data-testid="button-copy-translation"
                   className="p-2 rounded-lg bg-secondary hover:bg-primary hover:text-white transition-colors"
                 >
@@ -217,7 +263,7 @@ export function TranslatorPage() {
             )}
           </div>
 
-          <div className={`flex-1 text-xl font-medium p-2 z-10 ${isRTL ? "text-right" : ""}`} dir="auto">
+          <div className={`flex-1 text-xl font-medium p-4 ${isRTL ? "text-right" : ""}`} dir="auto">
             {translate.isPending ? (
               <span className="text-muted-foreground animate-pulse">{labels.translating}</span>
             ) : translate.data ? (

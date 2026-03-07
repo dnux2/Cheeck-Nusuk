@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, CircleMarker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useLanguage } from "@/contexts/language-context";
@@ -78,13 +78,38 @@ function makeFacilityIcon(type: FacilityType) {
   });
 }
 
-function PilgrimDot({ lat, lng }: { lat: number; lng: number }) {
+function makePilgrimIcon() {
+  return L.divIcon({
+    html: `
+      <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+        <div class="pilgrim-pulse-ring" style="position:absolute;top:0;left:0;width:48px;height:48px;border-radius:50%;background:rgba(16,185,129,0.5);pointer-events:none"></div>
+        <div style="width:26px;height:26px;background:#0E4D41;border-radius:50%;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center">
+          <div style="width:8px;height:8px;background:#4ade80;border-radius:50%"></div>
+        </div>
+      </div>`,
+    className: "",
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+  });
+}
+
+function PilgrimDot({ lat, lng, ar }: { lat: number; lng: number; ar: boolean }) {
   const map = useMap();
   useEffect(() => { map.setView([lat, lng], map.getZoom()); }, [lat, lng]);
   return (
-    <CircleMarker center={[lat, lng]} radius={10} pathOptions={{ color: "#0E4D41", fillColor: "#10B981", fillOpacity: 1, weight: 3 }}>
-      <Popup><b>موقعك الحالي</b></Popup>
-    </CircleMarker>
+    <Marker position={[lat, lng]} icon={makePilgrimIcon()} zIndexOffset={1000}>
+      <Popup maxWidth={180}>
+        <div style={{ textAlign: "center", fontFamily: "inherit", padding: "4px 0" }}>
+          <div style={{ fontSize: 20, marginBottom: 4 }}>📍</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#0E4D41" }}>
+            {ar ? "أنت هنا" : "You are here"}
+          </div>
+          <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+            {ar ? "موقعك الحالي" : "Your current location"}
+          </div>
+        </div>
+      </Popup>
+    </Marker>
   );
 }
 
@@ -136,7 +161,7 @@ export function PilgrimGuideMap() {
     <div className="flex flex-col h-full" style={{ direction: isRTL ? "rtl" : "ltr" }}>
 
       {/* Filter bar */}
-      <div className="px-4 py-3 bg-[#FBF8F3] border-b border-[#E8DDD0] overflow-x-auto">
+      <div className="px-4 py-3 bg-card border-b border-border overflow-x-auto">
         <div className={`flex gap-2 ${isRTL ? "flex-row-reverse" : ""}`} style={{ minWidth: "max-content" }}>
           {(Object.entries(TYPE_CONFIG) as [FacilityType, typeof TYPE_CONFIG[FacilityType]][]).map(([type, cfg]) => {
             const active = activeFilters.has(type);
@@ -144,7 +169,7 @@ export function PilgrimGuideMap() {
               <button
                 key={type}
                 onClick={() => toggleFilter(type)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${active ? "text-white border-transparent shadow-sm" : "bg-white border-[#E8DDD0] text-[#8B6E4E]"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${active ? "text-white border-transparent shadow-sm" : "bg-background border-border text-muted-foreground"}`}
                 style={active ? { background: cfg.colorHex } : {}}
                 data-testid={`filter-${type}`}
               >
@@ -158,11 +183,11 @@ export function PilgrimGuideMap() {
 
       {/* Route info banner */}
       {routeInfo && (
-        <div className="px-4 py-2 bg-[#0E4D41] text-white text-xs flex items-center justify-between">
+        <div className={`px-4 py-2 bg-primary text-primary-foreground text-xs flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
           <span className="font-bold">{ar ? `المسار إلى: ${routeInfo.name}` : `Route to: ${routeInfo.name}`}</span>
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
             <span>{routeInfo.km < 1 ? `${Math.round(routeInfo.km * 1000)} م` : `${routeInfo.km.toFixed(1)} كم`}</span>
-            <button onClick={() => { setRouteLine(null); setRouteInfo(null); }} className="text-white/70 hover:text-white text-base leading-none">✕</button>
+            <button onClick={() => { setRouteLine(null); setRouteInfo(null); }} className="text-primary-foreground/70 hover:text-primary-foreground text-base leading-none">✕</button>
           </div>
         </div>
       )}
@@ -180,8 +205,8 @@ export function PilgrimGuideMap() {
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
 
-          {/* Pilgrim location */}
-          <PilgrimDot lat={pilgrimLat} lng={pilgrimLng} />
+          {/* Pilgrim location — pulsing dot */}
+          <PilgrimDot lat={pilgrimLat} lng={pilgrimLng} ar={ar} />
 
           {/* Route line */}
           {routeLine && (
