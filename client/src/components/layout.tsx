@@ -6,11 +6,13 @@ import {
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/language-context";
+import { useAuth } from "@/contexts/auth-context";
 import logoImg from "@assets/WhatsApp_Image_2026-03-07_at_12.53.20_AM_1772834050515.jpeg";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { t, lang, setLang, isRTL } = useLanguage();
+  const { user, logout } = useAuth();
 
   const isDesktop = () => typeof window !== "undefined" && window.innerWidth >= 768;
   const [sidebarOpen, setSidebarOpen] = useState(isDesktop());
@@ -126,12 +128,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Settings className="w-5 h-5 opacity-70 flex-shrink-0" />
             <span className="font-medium">{t("settings")}</span>
           </div>
-          <Link href="/">
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10 transition-colors ${isRTL ? "flex-row-reverse" : ""}`}>
-              <LogOut className="w-5 h-5 flex-shrink-0" />
-              <span className="font-medium">{lang === "ar" ? "تسجيل الخروج" : "Logout"}</span>
-            </div>
-          </Link>
+          <button onClick={() => logout()} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10 transition-colors ${isRTL ? "flex-row-reverse" : ""}`}>
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium">{lang === "ar" ? "تسجيل الخروج" : "Logout"}</span>
+          </button>
         </div>
       </motion.aside>
 
@@ -197,12 +197,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Admin info + avatar */}
             <div className={`hidden sm:flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
               <div className={isRTL ? "text-right" : "text-right"}>
-                <p className="text-xs font-bold text-foreground leading-tight">{t("adminSupervisor")}</p>
+                <p className="text-xs font-bold text-foreground leading-tight">{user?.name || t("adminSupervisor")}</p>
                 <p className="text-[10px] text-muted-foreground">{t("sector")}</p>
               </div>
             </div>
             <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-bold shadow-sm flex-shrink-0 text-xs">
-              AS
+              {user?.name ? user.name.substring(0, 2).toUpperCase() : "AS"}
             </div>
           </div>
         </header>

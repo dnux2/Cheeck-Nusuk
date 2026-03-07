@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, Heart, Phone, Edit3, CheckCircle2, AlertCircle, Clock, User } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,12 +19,17 @@ const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 export function PilgrimWalletPage() {
   const { lang, isRTL } = useLanguage();
+  const { user } = useAuth();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [editOpen, setEditOpen] = useState(false);
 
+  const pilgrimId = user?.pilgrimId ?? 0;
+
   const { data: pilgrim, isLoading } = useQuery<Pilgrim>({
-    queryKey: ["/api/pilgrims/1"],
+    queryKey: ["/api/pilgrims", pilgrimId],
+    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}`, { credentials: "include" }).then(r => r.json()),
+    enabled: pilgrimId > 0,
   });
 
   const [form, setForm] = useState({
@@ -35,9 +41,9 @@ export function PilgrimWalletPage() {
   });
 
   const updateHealth = useMutation({
-    mutationFn: (data: typeof form) => apiRequest("PATCH", "/api/pilgrims/1/health", data),
+    mutationFn: (data: typeof form) => apiRequest("PATCH", `/api/pilgrims/${pilgrimId}/health`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/pilgrims/1"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pilgrims", pilgrimId] });
       queryClient.invalidateQueries({ queryKey: ["/api/pilgrims"] });
       setEditOpen(false);
       toast({ title: ar ? "✅ تم حفظ البيانات الصحية" : "✅ Health data saved" });

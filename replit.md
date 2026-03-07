@@ -88,7 +88,30 @@ This eliminates API drift between frontend hooks and backend handlers.
 
 ### Authentication
 
-No authentication system is currently implemented. The platform is designed for internal admin use. Sessions could be added using `express-session` + `connect-pg-simple` (both already in dependencies).
+Session-based auth using `express-session` with `SESSION_SECRET` env var. Two portals on `/login`:
+
+- **Supervisor tab**: Username + password → redirects to `/dashboard`
+- **Pilgrim tab**: Passport number + 4-digit PIN (last 4 digits of phone) → redirects to `/pilgrim`
+
+Demo credentials:
+- Supervisors: `admin / nusuk2025`, `supervisor1 / hajj1446`
+- Pilgrims: `A12345678 / 4567` (Ahmed Ali), `B98765432 / 7890` (Muhammad Rahman)
+
+Auth endpoints:
+- `POST /api/auth/login` — validates credentials, bcrypt hash check, stores session
+- `GET /api/auth/me` — returns current session user or 401
+- `POST /api/auth/logout` — destroys session
+
+Rate limiting: max 5 login attempts per IP per 15 minutes.
+
+Auth context (`client/src/contexts/auth-context.tsx`) wraps the app and provides `useAuth()` hook.
+
+Route protection:
+- Supervisor routes: `requireRole("supervisor")` middleware
+- Pilgrim routes: `requireRole("pilgrim")` middleware + data scoped to session `pilgrimId`
+- Pilgrims can only read/update their own records (hardcoded IDs fully removed)
+
+`users` table: id, username (passport/login name, uppercase), passwordHash, role, pilgrimId (nullable FK), name, createdAt
 
 ---
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Save, CheckCircle2, Star, Lock, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -9,8 +10,6 @@ import { type HajjNote } from "@shared/schema";
 import { PilgrimLayout } from "@/components/pilgrim-layout";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-
-const PILGRIM_ID = 1;
 
 const STAGES = [
   {
@@ -76,13 +75,18 @@ const STAGES = [
 
 export function PilgrimHajjNotesPage() {
   const { lang, isRTL } = useLanguage();
+  const { user } = useAuth();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
+  const pilgrimId = user?.pilgrimId ?? 0;
+
   const { data: notes = [] } = useQuery<HajjNote[]>({
-    queryKey: [`/api/pilgrims/${PILGRIM_ID}/hajj-notes`],
+    queryKey: ["/api/pilgrims", pilgrimId, "hajj-notes"],
+    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}/hajj-notes`, { credentials: "include" }).then(r => r.json()),
+    enabled: pilgrimId > 0,
   });
 
   const noteMap: Record<string, string> = {};
@@ -90,10 +94,10 @@ export function PilgrimHajjNotesPage() {
 
   const saveNote = useMutation({
     mutationFn: ({ stageKey, note }: { stageKey: string; note: string }) =>
-      apiRequest("PATCH", `/api/pilgrims/${PILGRIM_ID}/hajj-notes/${stageKey}`, { note }),
+      apiRequest("PATCH", `/api/pilgrims/${pilgrimId}/hajj-notes/${stageKey}`, { note }),
     onMutate: ({ stageKey }) => setSaving(stageKey),
     onSuccess: (_, { stageKey }) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/pilgrims/${PILGRIM_ID}/hajj-notes`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pilgrims", pilgrimId, "hajj-notes"] });
       setDraftNotes(prev => { const n = { ...prev }; delete n[stageKey]; return n; });
       setSaving(null);
       toast({ title: ar ? "✓ تم الحفظ" : "✓ Saved", description: ar ? "تم حفظ ملاحظتك بنجاح" : "Your note has been saved" });

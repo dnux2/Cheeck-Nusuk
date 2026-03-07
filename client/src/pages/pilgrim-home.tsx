@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Map, MessageSquare, Languages, BookOpen, Star, Droplets, Clock, CheckCircle2, ChevronRight, Stethoscope, UserSearch, Shield, X, MapPin, BatteryLow, Activity, Zap } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +20,6 @@ const MODE_INTERVALS: Record<SharingMode, number> = {
 };
 const EMERGENCY_INTERVAL = 30 * 1000;
 const MIN_MOVE_METERS = 50;
-const LOC_QUEUE_KEY = "loc_queue_pilgrim_1";
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -29,11 +29,11 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): num
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function loadQueue(): { lat: number; lng: number }[] {
-  try { return JSON.parse(localStorage.getItem(LOC_QUEUE_KEY) ?? "[]"); } catch { return []; }
+function loadQueue(key: string): { lat: number; lng: number }[] {
+  try { return JSON.parse(localStorage.getItem(key) ?? "[]"); } catch { return []; }
 }
-function saveQueue(q: { lat: number; lng: number }[]) {
-  localStorage.setItem(LOC_QUEUE_KEY, JSON.stringify(q.slice(-20)));
+function saveQueue(key: string, q: { lat: number; lng: number }[]) {
+  localStorage.setItem(key, JSON.stringify(q.slice(-20)));
 }
 
 const PRAYER_TIMES = [
@@ -69,13 +69,21 @@ const EMERGENCY_TYPES: { type: EmergencyType; ar: string; en: string; icon: Reac
 
 export function PilgrimHomePage() {
   const { lang, isRTL } = useLanguage();
+  const { user } = useAuth();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [sosSent, setSosSent] = useState(false);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [selectedType, setSelectedType] = useState<EmergencyType | null>(null);
 
-  const { data: pilgrim } = useQuery<Pilgrim>({ queryKey: ["/api/pilgrims/1"] });
+  const pilgrimId = user?.pilgrimId ?? 0;
+  const LOC_QUEUE_KEY = `loc_queue_pilgrim_${pilgrimId}`;
+
+  const { data: pilgrim } = useQuery<Pilgrim>({
+    queryKey: ["/api/pilgrims", pilgrimId],
+    queryFn: () => fetch(`/api/pilgrims/${pilgrimId}`, { credentials: "include" }).then(r => r.json()),
+    enabled: pilgrimId > 0,
+  });
 
   const [isSharing, setIsSharing] = useState(false);
   const [sharingMode, setSharingMode] = useState<SharingMode>("normal");
@@ -98,27 +106,27 @@ export function PilgrimHomePage() {
     const prev = lastSentRef.current;
     if (!forced && prev && haversineM(prev.lat, prev.lng, lat, lng) < MIN_MOVE_METERS) return;
     updateLocation.mutate(
-      { id: 1, locationLat: lat, locationLng: lng },
+      { id: pilgrimId, locationLat: lat, locationLng: lng },
       {
         onSuccess: () => {
           lastSentRef.current = { lat, lng };
-          const q = loadQueue();
+          const q = loadQueue(LOC_QUEUE_KEY);
           if (q.length > 0) {
             const next = q.shift()!;
-            saveQueue(q);
-            updateLocation.mutate({ id: 1, locationLat: next.lat, locationLng: next.lng });
+            saveQueue(LOC_QUEUE_KEY, q);
+            updateLocation.mutate({ id: pilgrimId, locationLat: next.lat, locationLng: next.lng });
             setQueueSize(q.length);
           }
         },
         onError: () => {
-          const q = loadQueue();
+          const q = loadQueue(LOC_QUEUE_KEY);
           q.push({ lat, lng });
-          saveQueue(q);
+          saveQueue(LOC_QUEUE_KEY, q);
           setQueueSize(q.length);
         },
       }
     );
-  }, [updateLocation]);
+  }, [updateLocation, pilgrimId, LOC_QUEUE_KEY]);
 
   const tick = useCallback((mode: SharingMode) => {
     if (!navigator.geolocation) return;
@@ -188,7 +196,7 @@ export function PilgrimHomePage() {
       new Promise<void>((resolve, reject) => {
         const send = (lat: number, lng: number) => {
           apiRequest("POST", "/api/emergencies", {
-            pilgrimId: 1, type, status: "Active",
+            pilgrimId, type, status: "Active",
             locationLat: lat, locationLng: lng,
           }).then(() => resolve()).catch(reject);
         };

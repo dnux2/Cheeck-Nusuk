@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, MessageSquare, Shield } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type ChatMessage } from "@shared/schema";
@@ -8,13 +9,14 @@ import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { PilgrimLayout } from "@/components/pilgrim-layout";
 
-const PILGRIM_ID = 1;
-
 export function PilgrimChatPage() {
   const { lang, isRTL } = useLanguage();
+  const { user } = useAuth();
   const ar = lang === "ar";
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  const pilgrimId = user?.pilgrimId ?? 0;
 
   const { data: chatMessages = [] } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/messages"],
@@ -22,7 +24,7 @@ export function PilgrimChatPage() {
   });
 
   const myMessages = chatMessages.filter(
-    m => m.pilgrimId === PILGRIM_ID || m.pilgrimId === null
+    m => m.pilgrimId === pilgrimId || m.pilgrimId === null
   );
 
   const sendChatMsg = useMutation({
@@ -41,7 +43,7 @@ export function PilgrimChatPage() {
   const handleSend = () => {
     const trimmed = chatInput.trim();
     if (!trimmed) return;
-    sendChatMsg.mutate({ message: trimmed, pilgrimId: PILGRIM_ID, senderRole: "pilgrim" });
+    sendChatMsg.mutate({ message: trimmed, pilgrimId, senderRole: "pilgrim" });
   };
 
   return (
