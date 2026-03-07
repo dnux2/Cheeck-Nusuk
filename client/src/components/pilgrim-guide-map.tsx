@@ -61,11 +61,11 @@ const FACILITIES: Facility[] = [
 ];
 
 const TYPE_CONFIG: Record<FacilityType, { colorHex: string; emoji: string; labelAr: string; labelEn: string }> = {
-  hospital:  { colorHex: "#EF4444", emoji: "🏥", labelAr: "المستشفيات",   labelEn: "Hospitals" },
-  water:     { colorHex: "#3B82F6", emoji: "💧", labelAr: "نقاط المياه",  labelEn: "Water Points" },
-  mosque:    { colorHex: "#10B981", emoji: "🕌", labelAr: "المساجد",      labelEn: "Mosques" },
-  bathroom:  { colorHex: "#8B5CF6", emoji: "🚻", labelAr: "دورات المياه", labelEn: "Restrooms" },
-  transport: { colorHex: "#F59E0B", emoji: "🚌", labelAr: "النقل",        labelEn: "Transport" },
+  hospital:  { colorHex: "#B03A2E", emoji: "🏥", labelAr: "المستشفيات",   labelEn: "Hospitals" },
+  water:     { colorHex: "#1A5C8A", emoji: "💧", labelAr: "نقاط المياه",  labelEn: "Water Points" },
+  mosque:    { colorHex: "#0E4D41", emoji: "🕌", labelAr: "المساجد",      labelEn: "Mosques" },
+  bathroom:  { colorHex: "#7B5E3A", emoji: "🚻", labelAr: "دورات المياه", labelEn: "Restrooms" },
+  transport: { colorHex: "#C49A3C", emoji: "🚌", labelAr: "النقل",        labelEn: "Transport" },
 };
 
 function makeFacilityIcon(type: FacilityType) {
