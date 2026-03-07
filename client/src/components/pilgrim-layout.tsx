@@ -45,12 +45,12 @@ export function PilgrimLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Pilgrim info card */}
-      <div className="mx-4 mt-4 p-3 rounded-2xl bg-primary text-primary-foreground shadow-md">
+      <div className="mx-4 mt-4 p-3 rounded-2xl bg-secondary border border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold flex-shrink-0">أ</div>
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-lg font-bold text-primary-foreground flex-shrink-0 shadow-sm">أ</div>
           <div>
-            <div className="font-bold text-sm">{ar ? "أحمد علي" : "Ahmed Ali"}</div>
-            <div className="text-primary-foreground/70 text-[10px]">{ar ? "حملة التوحيد · مكة المكرمة" : "Al-Tawheed · Makkah"}</div>
+            <div className="font-bold text-sm text-foreground">{ar ? "أحمد علي" : "Ahmed Ali"}</div>
+            <div className="text-muted-foreground text-[10px] mt-0.5">{ar ? "حملة التوحيد · مكة المكرمة" : "Al-Tawheed · Makkah"}</div>
           </div>
         </div>
       </div>
